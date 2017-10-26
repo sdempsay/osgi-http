@@ -14,7 +14,7 @@ public class SseMessageEvent {
     final Optional<ConvertibleAsset<String>> event;
     final Optional<ConvertibleAsset<String>> data;
     
-    protected SseMessageEvent(final Optional<String> id,
+    public SseMessageEvent(final Optional<String> id,
             final Optional<ConvertibleAsset<String>> event,
             final Optional<ConvertibleAsset<String>> data) {
         this.id = id;

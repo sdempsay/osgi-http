@@ -1,7 +1,9 @@
 package com.pavlovmedia.osgi.http.impl;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
@@ -19,6 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.pavlovmedia.osgi.http.HttpExceptionCollection;
 import com.pavlovmedia.osgi.http.HttpResponse;
@@ -36,6 +40,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     public static final String ACCEPT_TYPE_HEADER = "Accept";
     public static final String CONTENT_TYPE_HEADER = "Content-type";
     private static final int TIMEOUT = 5000; // XXX: Should this be settable?
+    private static final Pattern SSE_ENTRY = Pattern.compile("(?<field>\\w+):(?<data>.+)");
     
     private Optional<URL> httpUrl = Optional.empty();
     private Optional<String> httpPath = Optional.empty();
@@ -366,6 +371,45 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
     
     private void handleSse(final HttpURLConnection connection) {
-        
+        AtomicBoolean isFalse = new AtomicBoolean();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+            while (!interrupt.orElse(isFalse).get()) {
+                Optional<String> id = Optional.empty();
+                Optional<ConvertibleAsset<String>> event = Optional.empty();
+                Optional<ConvertibleAsset<String>> data = Optional.empty();
+                while (!interrupt.orElse(isFalse).get()) {
+                    // Empty line is the end of an event
+                    String line = reader.readLine();
+                    if (line.trim().isEmpty()) {
+                        // If we have at least data, emit an sse event
+                        if (data.isPresent()) {
+                            SseMessageEvent currentEvent = new SseMessageEvent(id, event, data);
+                            sseConsumer.get().accept(currentEvent);
+                        }
+                        break; // Next message
+                    }
+
+                    // This ignores comment lines
+                    if (!line.trim().startsWith(":")) {
+                        Matcher lineMatcher = SSE_ENTRY.matcher(line.trim());
+                        if (lineMatcher.matches()) {
+                            switch (lineMatcher.group("field")) {
+                                case "id":
+                                    id = Optional.of(lineMatcher.group("data"));
+                                    break;
+                                case "event":
+                                    event = Optional.of(new ConvertibleAsset<>(lineMatcher.group("data")));
+                                    break;
+                                case "data":
+                                    data = Optional.of(new ConvertibleAsset<>(lineMatcher.group("data")));
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

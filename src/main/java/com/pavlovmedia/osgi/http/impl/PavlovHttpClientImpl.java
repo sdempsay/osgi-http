@@ -403,6 +403,8 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                                 case "data":
                                     data = Optional.of(new ConvertibleAsset<>(lineMatcher.group("data")));
                                     break;
+                                default:
+                                    // Do nothing
                             }
                         }
                     }

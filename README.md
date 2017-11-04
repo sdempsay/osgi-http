@@ -1,1 +1,3 @@
-osgi-http
+# osgi-http
+HTTP helper bundle
+

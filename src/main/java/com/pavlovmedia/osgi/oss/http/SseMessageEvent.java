@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.http;
+package com.pavlovmedia.osgi.oss.http;
 
 import java.util.Optional;
 

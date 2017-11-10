@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.http;
+package com.pavlovmedia.osgi.oss.http;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -19,9 +19,11 @@ public class IntegrationTests {
         Optional<HttpResponse> response = new PavlovHttpClientImpl()
                 .againstUrl(new URL("http://www.pavlovgo.com"))
                 .withVerb(HttpVerbs.GET)
+                .usingGzip()
                 .execute(System.err::println);
         
         assertTrue(response.isPresent());
+        System.out.println(response.get().responseHeaders);
         assertEquals(200, response.get().responseCode);
         assertTrue(response.get().responseStream.isPresent());
         System.out.println(response.get().getResponseText(System.err::println));

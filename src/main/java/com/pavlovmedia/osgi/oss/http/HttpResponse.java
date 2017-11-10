@@ -1,15 +1,21 @@
-package com.pavlovmedia.osgi.http;
+package com.pavlovmedia.osgi.oss.http;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Vector;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.zip.GZIPInputStream;
 
 import com.pavlovmedia.osgi.utilities.convertible.ConvertibleAsset;
 
@@ -59,15 +65,39 @@ public class HttpResponse {
         this.responseHeaders = responseHeaders;
     }
     
+    public boolean isGziped() {
+        return responseHeaders.getOrDefault("Content-Encoding", Collections.emptyList())
+                .contains("gzip");
+    }
+    
+    private AtomicReference<String> responseString = new AtomicReference<>();
+    
+    private String readAndCache(final Optional<ConvertibleAsset<InputStream>> stream, 
+            final AtomicReference<String> reference, final Consumer<Exception> onError) {
+        if (!stream.isPresent()) {
+            return "";
+        }
+        
+        if (reference.get() != null) {
+            return reference.get();
+        }
+        
+        ConvertibleAsset<InputStream> working = stream.get();
+        if (isGziped()) {
+            working = working.convert(gunzipInputStream(onError));
+        }
+        
+        reference.set(working.convert(inputStreamToUTF8StringConverter(onError)));
+        return reference.get();
+    }
+    
     /**
      * Gets the response stream as text
      * returns an empty string if there is no response text
      * @param onError
      */
     public String getResponseText(final Consumer<Exception> onError) {
-        return responseStream.isPresent()
-                ? responseStream.get().convert(inputStreamToUTF8StringConverter(onError))
-                : "";
+        return readAndCache(responseStream, responseString, onError);
     }
     
     /**
@@ -75,10 +105,10 @@ public class HttpResponse {
      * returns an empty string if there is no response text
      */
     public String getResponseText() {
-        return responseStream.isPresent()
-                ? responseStream.get().convert(inputStreamToUTF8StringConverter(HttpResponse::ignoreError))
-                : "";
+        return getResponseText(HttpResponse::ignoreError);
     }
+    
+    private AtomicReference<String> errorString = new AtomicReference<String>();
     
     /**
      * Gets the error stream as text
@@ -87,9 +117,7 @@ public class HttpResponse {
      * @param onError
      */
     public String getErrorText(final Consumer<Exception> onError) {
-        return errorStream.isPresent()
-                ? errorStream.get().convert(inputStreamToUTF8StringConverter(onError))
-                : "";
+        return readAndCache(errorStream, errorString, onError);
     }
     
     /**
@@ -117,6 +145,35 @@ public class HttpResponse {
                 return "";
             }
         };
+    }
+    
+    public static Function<InputStream, ConvertibleAsset<InputStream>> gunzipInputStream(final Consumer<Exception> onError) {
+        return (in) -> gunzipInputStream(in, onError);
+    }
+    
+    public static ConvertibleAsset<InputStream> gunzipInputStream(final InputStream in, final Consumer<Exception> onError) {
+        try {
+            Reader reader = new InputStreamReader(new GZIPInputStream(in));
+            Vector<Byte> byteVector = new Vector<>(1024);
+        
+            while (true) {
+                int ch = reader.read();
+                if (-1 == ch) {
+                    break;
+                }
+                byteVector.add((byte) ch);
+            }
+            
+            byte[] byteArray = new byte[byteVector.size()];
+            for (int i = 0; i < byteVector.size(); i++) {
+                byteArray[i] = byteVector.get(i).byteValue();
+            }
+            return new ConvertibleAsset<>(new ByteArrayInputStream(byteArray));
+            
+        } catch (IOException e) {
+            onError.accept(e);
+            return new ConvertibleAsset<>(new ByteArrayInputStream(new byte[ ] { }));
+        }
     }
     
     /**

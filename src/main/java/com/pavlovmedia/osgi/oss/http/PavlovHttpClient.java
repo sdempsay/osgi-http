@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.http;
+package com.pavlovmedia.osgi.oss.http;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -130,6 +130,11 @@ public interface PavlovHttpClient {
      * @param streamConsumer
      */
     PavlovHttpClient asStreaming(Consumer<InputStream> streamConsumer);
+    
+    /**
+     * Attempts to get this stream with gzip encoding
+     */
+    PavlovHttpClient usingGzip();
     
     /**
      * Executes this request synchronously, sending along any errors to

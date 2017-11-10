@@ -1,6 +1,7 @@
 package com.pavlovmedia.osgi.http;
 
 /**
+ * Verbs that can be used in HTTP Requests
  * 
  * @author Shawn Dempsay {@literal <sdempsay@pavlovmedia.com>}
  *

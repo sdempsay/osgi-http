@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.http.impl;
+package com.pavlovmedia.osgi.http;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,14 +24,10 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.pavlovmedia.osgi.http.HttpExceptionCollection;
-import com.pavlovmedia.osgi.http.HttpResponse;
-import com.pavlovmedia.osgi.http.HttpVerbs;
-import com.pavlovmedia.osgi.http.PavlovHttpClient;
-import com.pavlovmedia.osgi.http.SseMessageEvent;
-import com.pavlovmedia.osgi.utilities.convertable.ConvertibleAsset;
+import com.pavlovmedia.osgi.utilities.convertible.ConvertibleAsset;
 
 /**
+ * Implementation of the {@link PavlovHttpClient} interface
  * 
  * @author Shawn Dempsay {@literal <sdempsay@pavlovmedia.com>}
  *
@@ -411,6 +407,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                 }
             }
         } catch (IOException e) {
+            // TODO: Is there any point in logging this somehow?
             e.printStackTrace();
         }
     }

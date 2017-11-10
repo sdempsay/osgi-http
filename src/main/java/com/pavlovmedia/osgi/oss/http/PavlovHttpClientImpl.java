@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.http;
+package com.pavlovmedia.osgi.oss.http;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -6,10 +6,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,9 +56,11 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     private Optional<Consumer<OutputStream>> handleStream = Optional.empty();
     private Optional<String> data = Optional.empty();
     
+    private URL validatedUrl;
+    
     public PavlovHttpClient clone() {
         PavlovHttpClientImpl ret = new PavlovHttpClientImpl();
-        this.httpUrl.ifPresent(this::againstUrl);
+        this.httpUrl.ifPresent(ret::againstUrl);
         this.httpPath.ifPresent(ret::withUrlPath);
         this.verb.ifPresent(ret::withVerb);
         ret.queryParams = new HashMap<>(this.queryParams);
@@ -177,6 +182,12 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
 
     @Override
+    public PavlovHttpClient usingGzip() {
+        addHeader("Accept-Encoding", "gzip");
+        return this;
+    }
+    
+    @Override
     public Optional<HttpResponse> execute(final Consumer<Exception> onError) {
         List<Exception> validationErrors = validate();
         if (!validationErrors.isEmpty()) {
@@ -184,19 +195,11 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             return Optional.empty();
         }
         
-        URL url;
-        try {
-        url = httpPath.isPresent()
-                ? combinePath(httpUrl.get(), httpPath.get())
-                : httpUrl.get();
-        } catch (MalformedURLException e) {
-            // This should never occur after validate
-            onError.accept(e);
-            return Optional.empty();
-        }
+        
+        System.out.println("Final url is: "+validatedUrl.toExternalForm());
         
         try {
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            HttpURLConnection connection = (HttpURLConnection) validatedUrl.openConnection();
             connection.setConnectTimeout(TIMEOUT);
             
             this.handleHeaders(connection);
@@ -289,17 +292,46 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         data.ifPresent(d -> handleStream.ifPresent(s -> 
             errors.add(new IllegalStateException("Cannot have data and a data handler at the same time"))));
         
-        // One last check to see if we can make a new URL from the passed in path, if it exists
+        AtomicReference<URL> url = new AtomicReference<>(httpUrl.get());
+        
+        // Check to see if we can make a new URL from the passed in path, if it exists
         httpPath.ifPresent(path ->
             // There was a check for this, but it can still be empty here
             httpUrl.ifPresent(u -> {
                 try {
-                    combinePath(httpUrl.get(), httpPath.get());
+                    url.set(combinePath(httpUrl.get(), httpPath.get()));
                 } catch (MalformedURLException e) {
                     errors.add(e);
                 }
             }));
+        
+        if (!queryParams.isEmpty()) {
+            String queryString = queryParams.keySet().stream()
+                .map(k -> convertQueryParameter(k, queryParams.get(k), e -> errors.add(e)))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .reduce((x,y) -> String.format("%s&%s", x,y)).orElse("");
+            try {
+                url.set(new URL(String.format("%s?%s", url.get().toExternalForm(), queryString)));
+            } catch (MalformedURLException e) {
+                errors.add(e);
+            }
+        }
+        
+        // We built up the final URL here as well
+        validatedUrl = url.get();
+        
         return errors;
+    }
+    
+    private Optional<String> convertQueryParameter(final String key, final String value, final Consumer<Exception> onError) {
+        try {
+            String enc = URLEncoder.encode(value, "UTF-8");
+            return Optional.of(String.format("%s=%s", key, enc));
+        } catch (UnsupportedEncodingException e) {
+            onError.accept(e);
+            return Optional.empty();
+        }
     }
     
     private void ifNotPresent(final Optional<?> optional, final Runnable action) {

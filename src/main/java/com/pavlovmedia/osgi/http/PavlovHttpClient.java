@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 
+ * A modern take on an HTTP client
  * @author Shawn Dempsay {@literal <sdempsay@pavlovmedia.com>}
  *
  */
@@ -21,8 +21,6 @@ public interface PavlovHttpClient {
     
     /**
      * Returns a complete clone of this object configuration
-     * 
-     * @return
      */
     PavlovHttpClient clone();
     
@@ -32,21 +30,18 @@ public interface PavlovHttpClient {
      * with an InterruptedException
      * 
      * @param interrupt
-     * @return
      */
     PavlovHttpClient withInterrupt(AtomicBoolean interrupt);
     
     /**
      * Sets the base URL to work against
      * @param url a URL
-     * @return
      */
     PavlovHttpClient againstUrl(URL url);
     
     /**
      * Appends a path to the end of the URL provided by againstUrl
      * @param path
-     * @return
      */
     PavlovHttpClient withUrlPath(String path);
     
@@ -54,46 +49,48 @@ public interface PavlovHttpClient {
      * Adds a query parameter to url
      * @param key
      * @param value
-     * @return
      */
     PavlovHttpClient withQueryParameter(String key, String value);
     
     /**
      * Sets the verb to use
      * @param verb
-     * @return
      */
     PavlovHttpClient withVerb(HttpVerbs verb);
     
+    /**
+     * Sets the content type of this request
+     * @param contentType
+     */
     PavlovHttpClient withContentType(String contentType);
     
+    /**
+     * Sets acceptable return types
+     * @param acceptTypes
+     */
     PavlovHttpClient withAcceptTypes(String...acceptTypes);
     
     /**
      * Gives a chance to directly modify the connection before it is used
      * @param rawConnection
-     * @return
      */
     PavlovHttpClient beforeConnectRaw(Consumer<HttpURLConnection> rawConnection);
     
     /**
      * Give a chance to directly inspect the connection results before return
      * @param rawConnection
-     * @return
      */
     PavlovHttpClient beforeFinishRaw(Consumer<HttpURLConnection> rawConnection);
     
     /**
      * Allows a modification of the headers
      * @param setHeaders
-     * @return
      */
     PavlovHttpClient withSimpleHeaders(Consumer<Map<String,String>> setHeaders);
     
     /**
      * Allows a modification of the headers
      * @param setHeaders
-     * @return
      */
     PavlovHttpClient withHeaders(Consumer<Map<String,List<String>>> setHeaders);
     
@@ -101,21 +98,18 @@ public interface PavlovHttpClient {
      * Adds a single header to the request
      * @param name header name
      * @param value header value
-     * @return
      */
     PavlovHttpClient addHeader(String name, String value);
     
     /**
      * Adds data passed into the stream (cannot be used with {@link #withData(String)})
      * @param handleStream
-     * @return
      */
     PavlovHttpClient withData(Consumer<OutputStream> handleStream);
     
     /**
      * Specifies a string to be used as data (cannot be used with {@link #withData(Consumer)})
      * @param data
-     * @return
      */
     PavlovHttpClient withData(String data);
     
@@ -125,7 +119,6 @@ public interface PavlovHttpClient {
      * Note: Can't be used with {@link #asStreaming(Consumer)}
      * 
      * @param sseConsumer
-     * @return
      */
     PavlovHttpClient asSse(Consumer<SseMessageEvent> sseConsumer);
     
@@ -135,7 +128,6 @@ public interface PavlovHttpClient {
      * Note: Can't be used with {@link #asSse(Consumer)}
      * 
      * @param streamConsumer
-     * @return
      */
     PavlovHttpClient asStreaming(Consumer<InputStream> streamConsumer);
     
@@ -144,7 +136,6 @@ public interface PavlovHttpClient {
      * the onError handler, and only returning a response if there are no
      * errors
      * @param onError
-     * @return
      */
     Optional<HttpResponse> execute(Consumer<Exception> onError);
     
@@ -152,8 +143,6 @@ public interface PavlovHttpClient {
      * Executes this request asynchronously. Any exceptions will be
      * fed through the {@link CompletableFuture#exceptionally(java.util.function.Function)}
      * method.
-     * 
-     * @return
      */
     CompletableFuture<HttpResponse> executeAsync();
     
@@ -162,8 +151,6 @@ public interface PavlovHttpClient {
      * fed through the {@link CompletableFuture#exceptionally(java.util.function.Function)}
      * method.
      * @param pool
-     * @param onError
-     * @return
      */
     CompletableFuture<HttpResponse> executeAsync(ExecutorService pool);
 }

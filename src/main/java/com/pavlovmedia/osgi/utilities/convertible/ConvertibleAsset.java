@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.utilities.convertable;
+package com.pavlovmedia.osgi.utilities.convertible;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -18,7 +18,6 @@ public class ConvertibleAsset<T> {
     
     /**
      * Gets the asset contained in this convertible
-     * @return
      */
     public T get() {
         return asset;
@@ -29,7 +28,6 @@ public class ConvertibleAsset<T> {
      * even the same time)
      * 
      * @param converter The converter to run
-     * @return
      */
     public <V> V convert(final Function<T,V> converter) {
         return converter.apply(asset);

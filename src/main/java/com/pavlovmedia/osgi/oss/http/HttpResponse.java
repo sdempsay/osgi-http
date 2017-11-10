@@ -164,9 +164,6 @@ public class HttpResponse {
                 byteVector.add((byte) ch);
             }
             
-            // Now we need to get back to
-        
-        
             byte[] byteArray = new byte[byteVector.size()];
             for (int i = 0; i < byteVector.size(); i++) {
                 byteArray[i] = byteVector.get(i).byteValue();

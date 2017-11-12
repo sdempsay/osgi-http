@@ -2,7 +2,7 @@ package com.pavlovmedia.osgi.oss.http;
 
 import java.util.Optional;
 
-import com.pavlovmedia.osgi.utilities.convertible.ConvertibleAsset;
+import com.pavlovmedia.osgi.oss.utilities.convertible.ConvertibleAsset;
 
 /**
  * 

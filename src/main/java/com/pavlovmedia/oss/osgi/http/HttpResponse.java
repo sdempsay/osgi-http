@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.oss.http;
+package com.pavlovmedia.oss.osgi.http;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.zip.GZIPInputStream;
 
-import com.pavlovmedia.osgi.oss.utilities.convertible.ConvertibleAsset;
+import com.pavlovmedia.oss.osgi.utilities.convertible.ConvertibleAsset;
 
 /**
  * 

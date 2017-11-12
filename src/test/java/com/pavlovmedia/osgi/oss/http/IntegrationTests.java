@@ -8,6 +8,10 @@ import java.util.Optional;
 
 import org.junit.Test;
 
+import com.pavlovmedia.oss.osgi.http.HttpResponse;
+import com.pavlovmedia.oss.osgi.http.HttpVerbs;
+import com.pavlovmedia.oss.osgi.http.PavlovHttpClientImpl;
+
 /**
  * 
  * @author Shawn Dempsay {@literal <sdempsay@pavlovmedia.com>}

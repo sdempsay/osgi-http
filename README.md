@@ -12,4 +12,4 @@ Latest Version
 --------------
 
 [ ![Download](https://api.bintray.com/packages/pavlovmedia/pavlov-media-oss/osgi-http/images/download.svg) ](https://bintray.com/pavlovmedia/pavlov-media-oss/osgi-http/_latestVersion)
-[![Maven Status](https://maven-badges.herokuapp.com/maven-central/com.pavlovmedia.oss.osgi/http/com.pavlovmedia.oss.osgi.http/badge.png)](https://repo1.maven.org/maven2/com/pavlovmedia/oss/osgi/http)
+[![Maven Status](https://maven-badges.herokuapp.com/maven-central/com.pavlovmedia.oss.osgi.http/com.pavlovmedia.oss.osgi.http/badge.png)](https://repo1.maven.org/maven2/com/pavlovmedia/oss/osgi/http)

@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.oss.http;
+package com.pavlovmedia.oss.osgi.http;
 
 /**
  * Verbs that can be used in HTTP Requests

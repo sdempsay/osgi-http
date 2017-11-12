@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.oss.http;
+package com.pavlovmedia.oss.osgi.http;
 
 import java.util.Arrays;
 import java.util.Collections;

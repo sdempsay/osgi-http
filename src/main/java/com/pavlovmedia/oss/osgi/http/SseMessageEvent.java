@@ -1,8 +1,8 @@
-package com.pavlovmedia.osgi.oss.http;
+package com.pavlovmedia.oss.osgi.http;
 
 import java.util.Optional;
 
-import com.pavlovmedia.osgi.oss.utilities.convertible.ConvertibleAsset;
+import com.pavlovmedia.oss.osgi.utilities.convertible.ConvertibleAsset;
 
 /**
  * 

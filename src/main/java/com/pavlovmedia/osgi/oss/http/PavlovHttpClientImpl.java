@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.pavlovmedia.osgi.utilities.convertible.ConvertibleAsset;
+import com.pavlovmedia.osgi.oss.utilities.convertible.ConvertibleAsset;
 
 /**
  * Implementation of the {@link PavlovHttpClient} interface
@@ -78,30 +78,30 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
     
     @Override
-    public PavlovHttpClient againstUrl(final URL url) {
+    public PavlovHttpClientImpl againstUrl(final URL url) {
         this.httpUrl = Optional.of(url);
         return this;
     }
 
     @Override
-    public PavlovHttpClient withUrlPath(final String path) {
+    public PavlovHttpClientImpl withUrlPath(final String path) {
         this.httpPath = Optional.of(path);
         return this;
     }
 
     @Override
-    public PavlovHttpClient withQueryParameter(final String key, final String value) {
+    public PavlovHttpClientImpl withQueryParameter(final String key, final String value) {
         this.queryParams.put(key, value);
         return this;
     }
 
     @Override
-    public PavlovHttpClient withVerb(final HttpVerbs verb) {
+    public PavlovHttpClientImpl withVerb(final HttpVerbs verb) {
         this.verb = Optional.of(verb);
         return this;
     }
 
-    public PavlovHttpClient withContentType(final String contentType) {
+    public PavlovHttpClientImpl withContentType(final String contentType) {
         if (!additionalHeaders.containsKey(CONTENT_TYPE_HEADER)) {
             additionalHeaders.put(CONTENT_TYPE_HEADER, new ArrayList<String>());
         }
@@ -109,7 +109,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         return this;
     }
     
-    public PavlovHttpClient withAcceptTypes(final String...acceptTypes) {
+    public PavlovHttpClientImpl withAcceptTypes(final String...acceptTypes) {
         if (!additionalHeaders.containsKey(ACCEPT_TYPE_HEADER)) {
             additionalHeaders.put(ACCEPT_TYPE_HEADER, new ArrayList<String>());
         }
@@ -118,37 +118,37 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
     
     @Override
-    public PavlovHttpClient withInterrupt(final AtomicBoolean interrupt) {
+    public PavlovHttpClientImpl withInterrupt(final AtomicBoolean interrupt) {
         this.interrupt = Optional.of(interrupt);
         return this;
     }
     
     @Override
-    public PavlovHttpClient beforeConnectRaw(final Consumer<HttpURLConnection> rawConnection) {
+    public PavlovHttpClientImpl beforeConnectRaw(final Consumer<HttpURLConnection> rawConnection) {
         this.beforeConnect = Optional.of(rawConnection);
         return this;
     }
 
     @Override
-    public PavlovHttpClient beforeFinishRaw(final Consumer<HttpURLConnection> rawConnection) {
+    public PavlovHttpClientImpl beforeFinishRaw(final Consumer<HttpURLConnection> rawConnection) {
         this.beforeFinish = Optional.of(rawConnection);
         return this;
     }
 
     @Override
-    public PavlovHttpClient withSimpleHeaders(final Consumer<Map<String, String>> setSimpleHeaders) {
+    public PavlovHttpClientImpl withSimpleHeaders(final Consumer<Map<String, String>> setSimpleHeaders) {
         this.setSimpleHeaders = Optional.of(setSimpleHeaders);
         return this;
     }
 
     @Override
-    public PavlovHttpClient withHeaders(final Consumer<Map<String, List<String>>> setHeaders) {
+    public PavlovHttpClientImpl withHeaders(final Consumer<Map<String, List<String>>> setHeaders) {
         this.setHeaders = Optional.of(setHeaders);
         return this;
     }
     
     @Override
-    public PavlovHttpClient addHeader(final String name, final String value) {
+    public PavlovHttpClientImpl addHeader(final String name, final String value) {
         if (!additionalHeaders.containsKey(name)) {
             additionalHeaders.put(name, new ArrayList<String>());
         }
@@ -158,31 +158,31 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
 
     @Override
-    public PavlovHttpClient withData(final Consumer<OutputStream> handleStream) {
+    public PavlovHttpClientImpl withData(final Consumer<OutputStream> handleStream) {
         this.handleStream = Optional.of(handleStream);
         return this;
     }
 
     @Override
-    public PavlovHttpClient withData(final String data) {
+    public PavlovHttpClientImpl withData(final String data) {
         this.data = Optional.of(data);
         return this;
     }
 
     @Override
-    public PavlovHttpClient asSse(final Consumer<SseMessageEvent> sseConsumer) {
+    public PavlovHttpClientImpl asSse(final Consumer<SseMessageEvent> sseConsumer) {
         this.sseConsumer = Optional.of(sseConsumer);
         return this;
     }
 
     @Override
-    public PavlovHttpClient asStreaming(final Consumer<InputStream> streamConsumer) {
+    public PavlovHttpClientImpl asStreaming(final Consumer<InputStream> streamConsumer) {
         this.streamConsumer = Optional.of(streamConsumer);
         return this;
     }
 
     @Override
-    public PavlovHttpClient usingGzip() {
+    public PavlovHttpClientImpl usingGzip() {
         addHeader("Accept-Encoding", "gzip");
         return this;
     }

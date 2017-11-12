@@ -1,4 +1,4 @@
-package com.pavlovmedia.osgi.utilities.convertible;
+package com.pavlovmedia.osgi.oss.utilities.convertible;
 
 import java.util.Objects;
 import java.util.function.Function;

@@ -102,6 +102,14 @@ public interface PavlovHttpClient {
     PavlovHttpClient addHeader(String name, String value);
     
     /**
+     * Adds an authorization header with basic auth
+     * @param username
+     * @param password
+     * @return
+     */
+    PavlovHttpClient withBasicAuth(String username, String password);
+    
+    /**
      * Adds data passed into the stream (cannot be used with {@link #withData(String)})
      * @param handleStream
      */

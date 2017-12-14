@@ -1,6 +1,7 @@
 package com.pavlovmedia.oss.osgi.http;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -232,7 +233,13 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             }
             
             beforeFinish.ifPresent(f -> f.accept(connection));
-            int responseCode = connection.getResponseCode();
+            int responseCode = -1;
+            try {
+                responseCode = connection.getResponseCode();
+            } catch (FileNotFoundException e) {
+                responseCode = 404;
+            }
+            
             if (responseCode >= 200 && responseCode < 300) {
                 Optional<ConvertibleAsset<InputStream>> inputStream = Optional.empty();
                 if (sseConsumer.isPresent()) {

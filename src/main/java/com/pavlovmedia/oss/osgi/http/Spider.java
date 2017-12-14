@@ -42,16 +42,14 @@ public class Spider {
             return;
         }
         
-        System.out.println("Got "+startUrl);
+
         if (save.test(startUrl)) {
-            System.out.println("Saving");
             Optional<HttpResponse> response = baseClient.clone()
                     .againstUrl(startUrl)
                     .withVerb(HttpVerbs.GET)
                     .execute(onError);
             response.ifPresent(r -> accumulator.put(startUrl, r));
         } else if (follow.test(startUrl)) {
-            System.out.println("spidering");
             Optional<HttpResponse> response = baseClient.clone()
                 .againstUrl(startUrl)
                 .withVerb(HttpVerbs.GET)
@@ -76,7 +74,6 @@ public class Spider {
             
             return links.stream()
                    .filter(s -> !(s.startsWith(".") || s.startsWith("..")))
-                   .peek(s -> System.out.println("Looking at "+s))
                    .map(s -> fromRef(s, response.srcUrl))
                    .filter(Optional::isPresent)
                    .map(Optional::get)

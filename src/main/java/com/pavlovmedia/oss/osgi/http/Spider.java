@@ -42,7 +42,6 @@ public class Spider {
             return;
         }
         
-
         if (save.test(startUrl)) {
             Optional<HttpResponse> response = baseClient.clone()
                     .againstUrl(startUrl)

@@ -1,6 +1,7 @@
 package com.pavlovmedia.oss.osgi.http;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -14,9 +15,11 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -158,6 +161,16 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
 
     @Override
+    public PavlovHttpClient withBasicAuth(final String username, final String password) {
+        Objects.requireNonNull(username);
+        Objects.requireNonNull(password);
+        byte[] credentials = String.format("%s:%s", username, password).getBytes();
+        String header = String.format("Basic %s",
+                Base64.getEncoder().encodeToString(credentials));
+        return addHeader("Authorization", header);
+    }
+    
+    @Override
     public PavlovHttpClientImpl withData(final Consumer<OutputStream> handleStream) {
         this.handleStream = Optional.of(handleStream);
         return this;
@@ -220,7 +233,13 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             }
             
             beforeFinish.ifPresent(f -> f.accept(connection));
-            int responseCode = connection.getResponseCode();
+            int responseCode = -1;
+            try {
+                responseCode = connection.getResponseCode();
+            } catch (FileNotFoundException e) {
+                responseCode = 404;
+            }
+            
             if (responseCode >= 200 && responseCode < 300) {
                 Optional<ConvertibleAsset<InputStream>> inputStream = Optional.empty();
                 if (sseConsumer.isPresent()) {
@@ -230,7 +249,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                 } else {
                     inputStream = Optional.of(new ConvertibleAsset<>(connection.getInputStream()));
                 }
-                return Optional.of(new HttpResponse(responseCode, Optional.empty(), inputStream,
+                return Optional.of(new HttpResponse(validatedUrl, responseCode, Optional.empty(), inputStream,
                         connection.getHeaderFields()));
             }
             
@@ -248,7 +267,9 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                     ? Optional.of(new ConvertibleAsset<>(connection.getErrorStream()))
                     : Optional.empty();
                     
-            return Optional.of(new HttpResponse(responseCode,
+            return Optional.of(new HttpResponse(
+                    validatedUrl,
+                    responseCode,
                     error,
                     response,
                     connection.getHeaderFields()));
@@ -340,7 +361,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         }
     }
     
-    private URL combinePath(final URL original, final String path) throws MalformedURLException {
+    public static URL combinePath(final URL original, final String path) throws MalformedURLException {
         String base = original.toExternalForm();
         String finalUrl = "";
         if (base.endsWith("/") && path.startsWith("/")) {

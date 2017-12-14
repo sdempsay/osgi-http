@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +26,11 @@ import com.pavlovmedia.oss.osgi.utilities.convertible.ConvertibleAsset;
  *
  */
 public class HttpResponse {
+    /**
+     * The URL that creaeted this response
+     */
+    public final URL srcUrl;
+    
     /**
      * The HTTP Response code
      */
@@ -55,10 +61,12 @@ public class HttpResponse {
      * @param responseStream
      * @param responseHeaders
      */
-    protected HttpResponse(final int responseCode, 
+    protected HttpResponse(final URL srcUrl,
+            final int responseCode, 
             final Optional<ConvertibleAsset<InputStream>> errorStream,
             final Optional<ConvertibleAsset<InputStream>> responseStream,
             final Map<String,List<String>> responseHeaders) {
+        this.srcUrl = srcUrl;
         this.responseCode = responseCode;
         this.errorStream = errorStream;
         this.responseStream = responseStream;
@@ -128,6 +136,21 @@ public class HttpResponse {
         return errorStream.isPresent()
                 ? errorStream.get().convert(inputStreamToUTF8StringConverter(HttpResponse::ignoreError))
                 : "";
+    }
+    
+    /**
+     * This method will check to see if there is a valid response code, which
+     * is between 200 and 299, if not it returns false
+     * 
+     * @param onError
+     * @return
+     */
+    public boolean isValidResponse(final Consumer<Exception> onError) {
+        if (responseCode < 200 || responseCode >= 300) {
+            onError.accept(new IllegalStateException("Got unexpected respone code "+responseCode));
+            return false;
+        }
+        return true;
     }
     
     /**

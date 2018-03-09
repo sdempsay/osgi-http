@@ -159,7 +159,7 @@ public class HttpResponse {
      * @return the converted string, or an empty string if there is an error.
      */
     public static Function<InputStream, String> inputStreamToUTF8StringConverter(final Consumer<Exception> onError) {
-        return (is) -> {
+        return is -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
                 return reader.lines().reduce((t, u) -> String.format("%s%s%s", t, System.lineSeparator(), u))
                         .orElse("No data");
@@ -171,7 +171,7 @@ public class HttpResponse {
     }
     
     public static Function<InputStream, ConvertibleAsset<InputStream>> gunzipInputStream(final Consumer<Exception> onError) {
-        return (in) -> gunzipInputStream(in, onError);
+        return in -> gunzipInputStream(in, onError);
     }
     
     public static ConvertibleAsset<InputStream> gunzipInputStream(final InputStream in, final Consumer<Exception> onError) {

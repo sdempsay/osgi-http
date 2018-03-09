@@ -61,7 +61,7 @@ public class Spider {
     }
     
     private Set<URL> parseForUrls(final HttpResponse response) {
-        if (response.isValidResponse((e) -> { }) && response.responseHeaders.getOrDefault("Content-Type", 
+        if (response.isValidResponse(e -> { }) && response.responseHeaders.getOrDefault("Content-Type", 
                 Arrays.asList("text/html"))
                 .contains("text/html")) {
             // We scan for href links

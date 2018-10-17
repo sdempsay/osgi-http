@@ -147,8 +147,7 @@ public interface PavlovHttpClient {
     /**
      * Allows you to ingore self signed certificates
      */
-
-    PavlovHttpClient ignoringSelfSignedCert(boolean b);
+    PavlovHttpClient ignoringSelfSignedCert(boolean ingoreSelfSignedCertEnabled);
 
     /**
      * Executes this request synchronously, sending along any errors to

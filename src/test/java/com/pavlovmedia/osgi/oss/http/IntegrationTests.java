@@ -39,7 +39,7 @@ public class IntegrationTests {
     @Test
     public void testPavlovDcim() throws Exception {
         final Optional<HttpResponse> response = new PavlovHttpClientImpl()
-                .againstUrl(new URL("https://dcim-rest.dev.pavlovmedia.corp/swagger-ui/#/"))
+                .againstUrl(new URL("https://www.google.com"))
                 .ignoringSelfSignedCert(true)
                 .withVerb(HttpVerbs.GET)
                 .usingGzip()

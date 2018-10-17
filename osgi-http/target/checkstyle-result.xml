@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="8.11">
+<file name="/Users/bdillman/Workspaces/osgi-http/src/main/java/com/pavlovmedia/oss/osgi/utilities/convertible/ConvertibleAsset.java">
+</file>
+<file name="/Users/bdillman/Workspaces/osgi-http/src/main/java/com/pavlovmedia/oss/osgi/utilities/convertible/package-info.java">
+</file>
+<file name="/Users/bdillman/Workspaces/osgi-http/src/main/java/com/pavlovmedia/oss/osgi/http/SelfSignedTrustManager.java">
+</file>
+<file name="/Users/bdillman/Workspaces/osgi-http/src/main/java/com/pavlovmedia/oss/osgi/http/PavlovHttpClientImpl.java">
+</file>
+<file name="/Users/bdillman/Workspaces/osgi-http/src/main/java/com/pavlovmedia/oss/osgi/http/Spider.java">
+</file>
+<file name="/Users/bdillman/Workspaces/osgi-http/src/main/java/com/pavlovmedia/oss/osgi/http/HttpExceptionCollection.java">
+</file>
+<file name="/Users/bdillman/Workspaces/osgi-http/src/main/java/com/pavlovmedia/oss/osgi/http/SseMessageEvent.java">
+</file>
+<file name="/Users/bdillman/Workspaces/osgi-http/src/main/java/com/pavlovmedia/oss/osgi/http/HttpVerbs.java">
+</file>
+</checkstyle>

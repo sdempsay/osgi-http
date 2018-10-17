@@ -37,6 +37,22 @@ public class IntegrationTests {
     }
 
     @Test
+    public void testPavlovDcim() throws Exception {
+        final Optional<HttpResponse> response = new PavlovHttpClientImpl()
+                .againstUrl(new URL("https://www.google.com"))
+                .ignoringSelfSignedCert(true)
+                .withVerb(HttpVerbs.GET)
+                .usingGzip()
+                .execute(System.err::println);
+
+        assertTrue(response.isPresent());
+        System.out.println(response.get().responseHeaders);
+        assertEquals(200, response.get().responseCode);
+        assertTrue(response.get().responseStream.isPresent());
+        System.out.println(response.get().getResponseText(System.err::println));
+    }
+
+    @Test
     public void testSpider() throws Exception {
         final PavlovHttpClientImpl client = new PavlovHttpClientImpl();
         final HashMap<URL, HttpResponse> accumulator = new HashMap<>();

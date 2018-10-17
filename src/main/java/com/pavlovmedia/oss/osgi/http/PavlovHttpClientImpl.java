@@ -13,6 +13,7 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -30,11 +31,16 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+
 import com.pavlovmedia.oss.osgi.utilities.convertible.ConvertibleAsset;
 
 /**
  * Implementation of the {@link PavlovHttpClient} interface
- * 
+ *
  * @author Shawn Dempsay {@literal <sdempsay@pavlovmedia.com>}
  *
  */
@@ -43,7 +49,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     public static final String CONTENT_TYPE_HEADER = "Content-type";
     private static final int TIMEOUT = 5000; // XXX: Should this be settable?
     private static final Pattern SSE_ENTRY = Pattern.compile("(?<field>\\w+):(?<data>.+)");
-    
+
     private Optional<URL> httpUrl = Optional.empty();
     private Optional<String> httpPath = Optional.empty();
     private Optional<HttpVerbs> verb = Optional.empty();
@@ -58,9 +64,11 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     private Optional<Consumer<InputStream>> streamConsumer = Optional.empty();
     private Optional<Consumer<OutputStream>> handleStream = Optional.empty();
     private Optional<String> data = Optional.empty();
-    
+    private boolean ignoreSelfSignedCertEnabled;
+
     private URL validatedUrl;
-    
+
+    @Override
     public PavlovHttpClient clone() {
         PavlovHttpClientImpl ret = new PavlovHttpClientImpl();
         this.httpUrl.ifPresent(ret::againstUrl);
@@ -79,10 +87,29 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         this.data.ifPresent(ret::withData);
         return ret;
     }
-    
+
+    private static SSLSocketFactory SELF_SIGNED_SOCKET_FACTORY;
+    static {
+        try {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, new TrustManager[] { new SelfSignedTrustManager() }, new java.security.SecureRandom());
+            SELF_SIGNED_SOCKET_FACTORY = sc.getSocketFactory();
+        } catch (GeneralSecurityException e) {
+            // This happens before we are running in osgi
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public PavlovHttpClientImpl againstUrl(final URL url) {
         this.httpUrl = Optional.of(url);
+        return this;
+    }
+
+    @Override
+    public PavlovHttpClient ignoringSelfSignedCert(final boolean ignoringSelfSignedCertEnabled) {
+        this.ignoreSelfSignedCertEnabled = ignoringSelfSignedCertEnabled;
         return this;
     }
 
@@ -104,28 +131,30 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         return this;
     }
 
+    @Override
     public PavlovHttpClientImpl withContentType(final String contentType) {
-        if (!additionalHeaders.containsKey(CONTENT_TYPE_HEADER)) {
-            additionalHeaders.put(CONTENT_TYPE_HEADER, new ArrayList<String>());
+        if (!this.additionalHeaders.containsKey(CONTENT_TYPE_HEADER)) {
+            this.additionalHeaders.put(CONTENT_TYPE_HEADER, new ArrayList<String>());
         }
-        additionalHeaders.get(CONTENT_TYPE_HEADER).add(contentType);
+        this.additionalHeaders.get(CONTENT_TYPE_HEADER).add(contentType);
         return this;
     }
-    
+
+    @Override
     public PavlovHttpClientImpl withAcceptTypes(final String...acceptTypes) {
-        if (!additionalHeaders.containsKey(ACCEPT_TYPE_HEADER)) {
-            additionalHeaders.put(ACCEPT_TYPE_HEADER, new ArrayList<String>());
+        if (!this.additionalHeaders.containsKey(ACCEPT_TYPE_HEADER)) {
+            this.additionalHeaders.put(ACCEPT_TYPE_HEADER, new ArrayList<String>());
         }
-        additionalHeaders.get(ACCEPT_TYPE_HEADER).addAll(Arrays.asList(acceptTypes));
+        this.additionalHeaders.get(ACCEPT_TYPE_HEADER).addAll(Arrays.asList(acceptTypes));
         return this;
     }
-    
+
     @Override
     public PavlovHttpClientImpl withInterrupt(final AtomicBoolean interrupt) {
         this.interrupt = Optional.of(interrupt);
         return this;
     }
-    
+
     @Override
     public PavlovHttpClientImpl beforeConnectRaw(final Consumer<HttpURLConnection> rawConnection) {
         this.beforeConnect = Optional.of(rawConnection);
@@ -149,14 +178,14 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         this.setHeaders = Optional.of(setHeaders);
         return this;
     }
-    
+
     @Override
     public PavlovHttpClientImpl addHeader(final String name, final String value) {
-        if (!additionalHeaders.containsKey(name)) {
-            additionalHeaders.put(name, new ArrayList<String>());
+        if (!this.additionalHeaders.containsKey(name)) {
+            this.additionalHeaders.put(name, new ArrayList<String>());
         }
-        
-        additionalHeaders.get(name).add(value);
+
+        this.additionalHeaders.get(name).add(value);
         return this;
     }
 
@@ -169,7 +198,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                 Base64.getEncoder().encodeToString(credentials));
         return addHeader("Authorization", header);
     }
-    
+
     @Override
     public PavlovHttpClientImpl withData(final Consumer<OutputStream> handleStream) {
         this.handleStream = Optional.of(handleStream);
@@ -199,7 +228,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         addHeader("Accept-Encoding", "gzip");
         return this;
     }
-    
+
     @Override
     public Optional<HttpResponse> execute(final Consumer<Exception> onError) {
         List<Exception> validationErrors = validate();
@@ -207,79 +236,83 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             onError.accept(new HttpExceptionCollection("execute failed", validationErrors));
             return Optional.empty();
         }
-        
-        
-        System.out.println("Final url is: "+validatedUrl.toExternalForm());
-        
+
+
+        System.out.println("Final url is: "+this.validatedUrl.toExternalForm());
+
         try {
-            HttpURLConnection connection = (HttpURLConnection) validatedUrl.openConnection();
+            HttpURLConnection connection = (HttpURLConnection) this.validatedUrl.openConnection();
             connection.setConnectTimeout(TIMEOUT);
-            
+
+            if (this.ignoreSelfSignedCertEnabled && connection instanceof HttpsURLConnection) {
+                ((HttpsURLConnection) connection).setSSLSocketFactory(SELF_SIGNED_SOCKET_FACTORY);
+            }
+
             this.handleHeaders(connection);
             this.setVerb(connection);
 
-            beforeConnect.ifPresent(c -> c.accept(connection));
-            
-            if (data.isPresent()) {
+            this.beforeConnect.ifPresent(c -> c.accept(connection));
+
+            if (this.data.isPresent()) {
                 connection.setDoOutput(true);
                 try (OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream())) {
-                    writer.write(data.get());
+                    writer.write(this.data.get());
                 }
-            } else if (handleStream.isPresent()) {
+            } else if (this.handleStream.isPresent()) {
                 connection.setDoOutput(true);
-                handleStream.get().accept(connection.getOutputStream());
+                this.handleStream.get().accept(connection.getOutputStream());
             } else {
                 connection.connect();
             }
-            
-            beforeFinish.ifPresent(f -> f.accept(connection));
+
+            this.beforeFinish.ifPresent(f -> f.accept(connection));
             int responseCode = -1;
             try {
                 responseCode = connection.getResponseCode();
             } catch (FileNotFoundException e) {
                 responseCode = 404;
             }
-            
+
             if (responseCode >= 200 && responseCode < 300) {
                 Optional<ConvertibleAsset<InputStream>> inputStream = Optional.empty();
-                if (sseConsumer.isPresent()) {
+                if (this.sseConsumer.isPresent()) {
                     handleSse(connection);
-                } else if (streamConsumer.isPresent()) {
-                    streamConsumer.get().accept(connection.getInputStream());
+                } else if (this.streamConsumer.isPresent()) {
+                    this.streamConsumer.get().accept(connection.getInputStream());
                 } else {
                     inputStream = Optional.of(new ConvertibleAsset<>(connection.getInputStream()));
                 }
-                return Optional.of(new HttpResponse(validatedUrl, responseCode, Optional.empty(), inputStream,
+                return Optional.of(new HttpResponse(this.validatedUrl, responseCode, Optional.empty(), inputStream,
                         connection.getHeaderFields()));
             }
-            
+
             Optional<ConvertibleAsset<InputStream>> response = Optional.empty();
             try {
-                    response = connection.getInputStream() != null 
+                    response = connection.getInputStream() != null
                         ? Optional.of(new ConvertibleAsset<>(connection.getInputStream()))
                         : Optional.empty();
             } catch (IOException e) {
                 onError.accept(e);
             }
-            
+
             Optional<ConvertibleAsset<InputStream>> error =
-                    connection.getErrorStream() != null 
+                    connection.getErrorStream() != null
                     ? Optional.of(new ConvertibleAsset<>(connection.getErrorStream()))
                     : Optional.empty();
-                    
+
             return Optional.of(new HttpResponse(
-                    validatedUrl,
+                    this.validatedUrl,
                     responseCode,
                     error,
                     response,
                     connection.getHeaderFields()));
-        
+
         } catch (IOException e) {
             onError.accept(new HttpExceptionCollection("execute failed", validationErrors));
             return Optional.empty();
         }
     }
-    
+
     @Override
     public CompletableFuture<HttpResponse> executeAsync() {
         return executeAsync(ForkJoinPool.commonPool());
@@ -288,47 +321,47 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     @Override
     public CompletableFuture<HttpResponse> executeAsync(final ExecutorService pool) {
         List<Exception> validationErrors = validate();
-        
+
         if (!validationErrors.isEmpty()) {
             CompletableFuture<HttpResponse> future = new CompletableFuture<>();
             HttpExceptionCollection ex = new HttpExceptionCollection("ExecuteAsync failed", validationErrors);
             future.completeExceptionally(ex);
             return future;
         }
-        
+
         return CompletableFuture.supplyAsync(this::execute);
     }
-    
+
     private List<Exception> validate() {
         ArrayList<Exception> errors = new ArrayList<>();
-        
+
         // We need, at a minimum, a url and verb
-        ifNotPresent(httpUrl, () -> errors.add(new IllegalStateException("A URL must be set")));
-        ifNotPresent(verb, () -> errors.add(new IllegalStateException("A verb must be set")));
-        
+        ifNotPresent(this.httpUrl, () -> errors.add(new IllegalStateException("A URL must be set")));
+        ifNotPresent(this.verb, () -> errors.add(new IllegalStateException("A verb must be set")));
+
         // Now check for things that can't both be set
-        sseConsumer.ifPresent(s -> streamConsumer.ifPresent(t -> 
+        this.sseConsumer.ifPresent(s -> this.streamConsumer.ifPresent(t ->
             errors.add(new IllegalStateException("Cannot be SSE and streaming at the same time"))));
-        
-        data.ifPresent(d -> handleStream.ifPresent(s -> 
+
+        this.data.ifPresent(d -> this.handleStream.ifPresent(s ->
             errors.add(new IllegalStateException("Cannot have data and a data handler at the same time"))));
-        
-        AtomicReference<URL> url = new AtomicReference<>(httpUrl.get());
-        
+
+        AtomicReference<URL> url = new AtomicReference<>(this.httpUrl.get());
+
         // Check to see if we can make a new URL from the passed in path, if it exists
-        httpPath.ifPresent(path ->
+        this.httpPath.ifPresent(path ->
             // There was a check for this, but it can still be empty here
-            httpUrl.ifPresent(u -> {
+            this.httpUrl.ifPresent(u -> {
                 try {
-                    url.set(combinePath(httpUrl.get(), httpPath.get()));
+                    url.set(combinePath(this.httpUrl.get(), this.httpPath.get()));
                 } catch (MalformedURLException e) {
                     errors.add(e);
                 }
             }));
-        
-        if (!queryParams.isEmpty()) {
-            String queryString = queryParams.keySet().stream()
-                .map(k -> convertQueryParameter(k, queryParams.get(k), e -> errors.add(e)))
+
+        if (!this.queryParams.isEmpty()) {
+            String queryString = this.queryParams.keySet().stream()
+                .map(k -> convertQueryParameter(k, this.queryParams.get(k), e -> errors.add(e)))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .reduce((x,y) -> String.format("%s&%s", x,y)).orElse("");
@@ -338,13 +371,13 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                 errors.add(e);
             }
         }
-        
+
         // We built up the final URL here as well
-        validatedUrl = url.get();
-        
+        this.validatedUrl = url.get();
+
         return errors;
     }
-    
+
     private Optional<String> convertQueryParameter(final String key, final String value, final Consumer<Exception> onError) {
         try {
             String enc = URLEncoder.encode(value, "UTF-8");
@@ -354,13 +387,13 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             return Optional.empty();
         }
     }
-    
+
     private void ifNotPresent(final Optional<?> optional, final Runnable action) {
         if (!optional.isPresent()) {
             action.run();
         }
     }
-    
+
     public static URL combinePath(final URL original, final String path) throws MalformedURLException {
         String base = original.toExternalForm();
         String finalUrl = "";
@@ -376,7 +409,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
     private HttpResponse execute() throws HttpExceptionCollection {
         ArrayList<Exception> exceptions = new ArrayList<>();
-        
+
         Optional<HttpResponse> ret = execute(exceptions::add);
 
         if (!exceptions.isEmpty()) {
@@ -384,14 +417,14 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         }
         return ret.get();
     }
-    
+
     protected void handleHeaders(final HttpURLConnection connection) {
         // We are going to be using a map, based off of what has already been set
-        HashMap<String,List<String>> headers = new HashMap<>(additionalHeaders);
+        HashMap<String,List<String>> headers = new HashMap<>(this.additionalHeaders);
         // Now pass along to any modification routines
-        setHeaders.ifPresent(sh -> sh.accept(headers));
+        this.setHeaders.ifPresent(sh -> sh.accept(headers));
         // Next we do simple headers, which is a touch more complex
-        setSimpleHeaders.ifPresent(setter -> {
+        this.setSimpleHeaders.ifPresent(setter -> {
             HashMap<String,String> simpleHeaders = new HashMap<>();
             setter.accept(simpleHeaders);
             simpleHeaders.forEach((key, value) -> {
@@ -401,39 +434,39 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                 headers.get(key).add(value);
             });
         });
-        
+
         // Now do the setting
         headers.forEach((key, valueList) -> {
             valueList.forEach(value -> connection.setRequestProperty(key, value));
         });
     }
-    
+
     protected void setVerb(final HttpURLConnection connection) throws ProtocolException {
-        switch (verb.get()) {
+        switch (this.verb.get()) {
             case PATCH:
                 connection.setRequestProperty("X-HTTP-Method-Override", "PATCH");
                 connection.setRequestMethod("POST");
                 break;
             default:
-                connection.setRequestMethod(verb.get().toString());
+                connection.setRequestMethod(this.verb.get().toString());
         }
     }
-    
+
     private void handleSse(final HttpURLConnection connection) {
         AtomicBoolean isFalse = new AtomicBoolean();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-            while (!interrupt.orElse(isFalse).get()) {
+            while (!this.interrupt.orElse(isFalse).get()) {
                 Optional<String> id = Optional.empty();
                 Optional<ConvertibleAsset<String>> event = Optional.empty();
                 Optional<ConvertibleAsset<String>> data = Optional.empty();
-                while (!interrupt.orElse(isFalse).get()) {
+                while (!this.interrupt.orElse(isFalse).get()) {
                     // Empty line is the end of an event
                     String line = reader.readLine();
                     if (line.trim().isEmpty()) {
                         // If we have at least data, emit an sse event
                         if (data.isPresent()) {
                             SseMessageEvent currentEvent = new SseMessageEvent(id, event, data);
-                            sseConsumer.get().accept(currentEvent);
+                            this.sseConsumer.get().accept(currentEvent);
                         }
                         break; // Next message
                     }

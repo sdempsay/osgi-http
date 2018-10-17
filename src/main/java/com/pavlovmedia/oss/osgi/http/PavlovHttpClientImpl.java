@@ -108,8 +108,8 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
 
     @Override
-    public PavlovHttpClient ignoringSelfSignedCert(final boolean b) {
-        this.ignoreSelfSignedCertEnabled = b;
+    public PavlovHttpClient ignoringSelfSignedCert(final boolean ignoringSelfSignedCertEnabled) {
+        this.ignoreSelfSignedCertEnabled = ignoringSelfSignedCertEnabled;
         return this;
     }
 

@@ -231,9 +231,10 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
     @Override
     public Optional<HttpResponse> execute(final Consumer<Exception> onError) {
+        Objects.requireNonNull(onError, "Error handler is required");
         List<Exception> validationErrors = validate();
         if (!validationErrors.isEmpty()) {
-            onError.accept(new HttpExceptionCollection("execute failed", validationErrors));
+            validationErrors.forEach(onError::accept);
             return Optional.empty();
         }
 
@@ -308,7 +309,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                     connection.getHeaderFields()));
 
         } catch (IOException e) {
-            onError.accept(new HttpExceptionCollection("execute failed", validationErrors));
+            onError.accept(e);
             return Optional.empty();
         }
     }
@@ -324,12 +325,24 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
         if (!validationErrors.isEmpty()) {
             CompletableFuture<HttpResponse> future = new CompletableFuture<>();
-            HttpExceptionCollection ex = new HttpExceptionCollection("ExecuteAsync failed", validationErrors);
-            future.completeExceptionally(ex);
+            IllegalStateException stacked = stackExceptions(validationErrors);
+            future.completeExceptionally(stacked);
             return future;
         }
-
-        return CompletableFuture.supplyAsync(this::execute);
+        
+        CompletableFuture<HttpResponse> ret = new CompletableFuture<>();
+        pool.submit(() -> {
+            AtomicReference<Exception> error = new AtomicReference<>();
+            Optional<HttpResponse> response = this.execute(error::set);
+            if (Objects.isNull(error)) {
+                ret.completeExceptionally(error.get());
+            } else if (response.isPresent()) {
+                ret.complete(response.get());
+            } else {
+                ret.completeExceptionally(new IllegalStateException("Http execution failed"));
+            }
+        });
+        return ret;
     }
 
     private List<Exception> validate() {
@@ -405,17 +418,6 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             finalUrl = String.format("%s%s", base, path);
           }
         return new URL(finalUrl);
-    }
-
-    private HttpResponse execute() throws HttpExceptionCollection {
-        ArrayList<Exception> exceptions = new ArrayList<>();
-
-        Optional<HttpResponse> ret = execute(exceptions::add);
-
-        if (!exceptions.isEmpty()) {
-            throw new HttpExceptionCollection("Execute failed", exceptions);
-        }
-        return ret.get();
     }
 
     protected void handleHeaders(final HttpURLConnection connection) {
@@ -496,5 +498,13 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             // TODO: Is there any point in logging this somehow?
             e.printStackTrace();
         }
+    }
+    
+    private static IllegalStateException stackExceptions(final List<Exception> exceptions) {
+        IllegalStateException last = null;
+        for (final Exception e: exceptions) {
+            last = new IllegalStateException(e.getMessage(), last);
+        }
+        return last;
     }
 }

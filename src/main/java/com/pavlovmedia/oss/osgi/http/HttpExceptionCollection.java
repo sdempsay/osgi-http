@@ -8,8 +8,10 @@ import java.util.List;
  * A container for a set of exceptions.
  * 
  * @author Shawn Dempsay {@literal <sdempsay@pavlovmedia.com>}
- *
+ * 
+ * @deprecated This class just ended up being a bad idea so it was scrapped and will be removed in 1.1 and beyond
  */
+@Deprecated
 public class HttpExceptionCollection extends RuntimeException {
     private static final long serialVersionUID = -2752741093973059572L;
     public final List<Exception> exceptions;

@@ -3,7 +3,7 @@
 import com.pavlovmedia.oss.osgi.http.*
 
 new PavlovHttpClientImpl()
-                .againstUrl(new URL("http://www.pavlovgo.com"))
+                .againstUrl(new URL("http://www.pavlovgogo.com"))
                 .withVerb(HttpVerbs.GET)
                 .withDebugger({println "DEBUG: "+it})
                 .execute({println "ERROR: "+it})

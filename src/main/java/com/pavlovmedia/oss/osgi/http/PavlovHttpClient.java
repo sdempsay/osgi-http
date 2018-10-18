@@ -145,7 +145,8 @@ public interface PavlovHttpClient {
     PavlovHttpClient usingGzip();
 
     /**
-     * Allows you to ingore self signed certificates
+     * Allows you to ignore self signed certificates
+     * @since 1.0.2
      */
     PavlovHttpClient ignoringSelfSignedCert(boolean ingoreSelfSignedCertEnabled);
 

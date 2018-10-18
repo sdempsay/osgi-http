@@ -63,6 +63,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     private Optional<Consumer<SseMessageEvent>> sseConsumer = Optional.empty();
     private Optional<Consumer<InputStream>> streamConsumer = Optional.empty();
     private Optional<Consumer<OutputStream>> handleStream = Optional.empty();
+    private Optional<Consumer<String>> debugger = Optional.empty();
     private Optional<String> data = Optional.empty();
     private boolean ignoreSelfSignedCertEnabled;
 
@@ -113,6 +114,12 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         return this;
     }
 
+    @Override
+    public PavlovHttpClient withDebugger(final Consumer<String> debugger) {
+        this.debugger = Optional.ofNullable(debugger);
+        return this;
+    }
+    
     @Override
     public PavlovHttpClientImpl withUrlPath(final String path) {
         this.httpPath = Optional.of(path);
@@ -238,14 +245,14 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             return Optional.empty();
         }
 
-
-        System.out.println("Final url is: "+this.validatedUrl.toExternalForm());
+        debugger.ifPresent(c -> c.accept("Final url is: "+this.validatedUrl.toExternalForm()));
 
         try {
             HttpURLConnection connection = (HttpURLConnection) this.validatedUrl.openConnection();
             connection.setConnectTimeout(TIMEOUT);
 
             if (this.ignoreSelfSignedCertEnabled && connection instanceof HttpsURLConnection) {
+                debugger.ifPresent(c -> c.accept("Ignorning self signed certificate"));
                 ((HttpsURLConnection) connection).setSSLSocketFactory(SELF_SIGNED_SOCKET_FACTORY);
             }
 
@@ -274,6 +281,9 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                 responseCode = 404;
             }
 
+            final int debugCode = responseCode; // Need this for the logging lambda
+            debugger.ifPresent(d -> d.accept("Response code is "+debugCode));
+            
             if (responseCode >= 200 && responseCode < 300) {
                 Optional<ConvertibleAsset<InputStream>> inputStream = Optional.empty();
                 if (this.sseConsumer.isPresent()) {
@@ -309,6 +319,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                     connection.getHeaderFields()));
 
         } catch (IOException e) {
+            debugger.ifPresent(d -> d.accept("Got exception "+e));
             onError.accept(e);
             return Optional.empty();
         }
@@ -388,6 +399,10 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         // We built up the final URL here as well
         this.validatedUrl = url.get();
 
+        if (!errors.isEmpty() && debugger.isPresent()) {
+            errors.forEach(e -> debugger.ifPresent(d -> d.accept(e.toString())));
+        }
+        
         return errors;
     }
 

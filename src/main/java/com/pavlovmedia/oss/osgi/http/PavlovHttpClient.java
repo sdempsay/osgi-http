@@ -151,6 +151,14 @@ public interface PavlovHttpClient {
     PavlovHttpClient ignoringSelfSignedCert(boolean ingoreSelfSignedCertEnabled);
 
     /**
+     * Sets up a debugger consumer to add messages to
+     * 
+     * @param debugger
+     * @since 1.0.2
+     */
+    PavlovHttpClient withDebugger(Consumer<String> debugger);
+    
+    /**
      * Executes this request synchronously, sending along any errors to
      * the onError handler, and only returning a response if there are no
      * errors
@@ -172,4 +180,5 @@ public interface PavlovHttpClient {
      * @param pool
      */
     CompletableFuture<HttpResponse> executeAsync(ExecutorService pool);
+    
 }

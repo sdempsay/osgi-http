@@ -32,6 +32,13 @@
       <organization>Pavlov Media</organization>
       <organizationUrl>http://www.pavlovmedia.com/</organizationUrl>
     </developer>
+    <developer>
+      <id>ykako</id>
+      <name>Yalda Kako</name>
+      <email>ykako@pavlovmedia.com</email>
+      <organization>Pavlov Media</organization>
+      <organizationUrl>http://www.pavlovmedia.com/</organizationUrl>
+    </developer>
   </developers>
 
   <licenses>

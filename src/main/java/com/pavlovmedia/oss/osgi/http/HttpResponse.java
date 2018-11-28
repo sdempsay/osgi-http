@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicReference;
@@ -148,7 +149,7 @@ public class HttpResponse {
      */
     public boolean isValidResponse(final Consumer<Exception> onError) {
         if (this.responseCode < 200 || this.responseCode >= 300) {
-            onError.accept(new IllegalStateException("Got unexpected respone code "+this.responseCode));
+            onError.accept(new IllegalStateException("Got unexpected response code "+this.responseCode));
             return false;
         }
         return true;
@@ -162,17 +163,26 @@ public class HttpResponse {
     public static Function<InputStream, String> inputStreamToUTF8StringConverter(final Consumer<Exception> onError) {
         return is -> {
             final InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
+            final Vector<Byte> byteVector = new Vector<>(1024);
+            
             try (BufferedReader reader = new BufferedReader(isr)) {
-                final char[] charBuffer = new char[is.available()];
-                reader.read(charBuffer, 0, charBuffer.length);
-                return Stream.of(charBuffer)
-                    .map(String::new)
-                    .reduce((t, u) -> String.format("%s%s%s", t, System.lineSeparator(), u))
-                    .orElse("No data");
+                while (true) {
+                    final int ch = reader.read();
+                    if (-1 == ch) {
+                        break;
+                    }
+                    byteVector.add((byte) ch);
+                }
+                
+                return Stream.of(byteVectorToByteArray(byteVector))
+                        .map(String::new)
+                        .reduce((t, u) -> String.format("%s%s%s", t, System.lineSeparator(), u))
+                        .orElse("No data");
             } catch (final IOException e) {
                 onError.accept(e);
                 return "";
             }
+            
         };
     }
 
@@ -193,16 +203,23 @@ public class HttpResponse {
                 byteVector.add((byte) ch);
             }
 
-            final byte[] byteArray = new byte[byteVector.size()];
-            for (int i = 0; i < byteVector.size(); i++) {
-                byteArray[i] = byteVector.get(i).byteValue();
-            }
-            return new ConvertibleAsset<>(new ByteArrayInputStream(byteArray));
+            return new ConvertibleAsset<>(new ByteArrayInputStream(byteVectorToByteArray(byteVector)));
 
         } catch (final IOException e) {
             onError.accept(e);
             return new ConvertibleAsset<>(new ByteArrayInputStream(new byte[ ] { }));
         }
+    }
+    
+    public static byte[] byteVectorToByteArray(final Vector<Byte> byteVector) {
+        Objects.requireNonNull(byteVector);
+        
+        final byte[] byteArray = new byte[byteVector.size()];
+        for (int i = 0; i < byteVector.size(); i++) {
+            byteArray[i] = byteVector.get(i).byteValue();
+        }
+        
+        return byteArray;
     }
 
     /**

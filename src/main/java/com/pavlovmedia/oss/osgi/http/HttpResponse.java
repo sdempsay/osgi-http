@@ -144,15 +144,22 @@ public class HttpResponse {
      * This method will check to see if there is a valid response code, which
      * is between 200 and 299, if not it returns false
      *
+     * @deprecated The Exception Consumer was not needed and causing issues.  Use the non-Exception Consumer method
      * @param onError
      * @return
      */
+    @Deprecated
     public boolean isValidResponse(final Consumer<Exception> onError) {
-        if (this.responseCode < 200 || this.responseCode >= 300) {
-            onError.accept(new IllegalStateException("Got unexpected response code "+this.responseCode));
-            return false;
-        }
-        return true;
+        return !(this.responseCode < 200 || this.responseCode >= 300);
+    }
+
+    /**
+     * This method will check to see if there is a valid response code, which
+     * is between 200 and 299, if not it returns false
+     * @return true : 200 >= x < 300
+     */
+    public boolean isValidResponse() {
+        return !(this.responseCode < 200 || this.responseCode >= 300);
     }
 
     /**

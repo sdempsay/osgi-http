@@ -71,7 +71,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
     @Override
     public PavlovHttpClient clone() {
-        PavlovHttpClientImpl ret = new PavlovHttpClientImpl();
+        final PavlovHttpClientImpl ret = new PavlovHttpClientImpl();
         this.httpUrl.ifPresent(ret::againstUrl);
         this.httpPath.ifPresent(ret::withUrlPath);
         this.verb.ifPresent(ret::withVerb);
@@ -92,10 +92,10 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     private static SSLSocketFactory SELF_SIGNED_SOCKET_FACTORY;
     static {
         try {
-            SSLContext sc = SSLContext.getInstance("SSL");
+            final SSLContext sc = SSLContext.getInstance("SSL");
             sc.init(null, new TrustManager[] { new SelfSignedTrustManager() }, new java.security.SecureRandom());
             SELF_SIGNED_SOCKET_FACTORY = sc.getSocketFactory();
-        } catch (GeneralSecurityException e) {
+        } catch (final GeneralSecurityException e) {
             // This happens before we are running in osgi
             System.out.println(e.getMessage());
             e.printStackTrace();
@@ -119,7 +119,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         this.debugger = Optional.ofNullable(debugger);
         return this;
     }
-    
+
     @Override
     public PavlovHttpClientImpl withUrlPath(final String path) {
         this.httpPath = Optional.of(path);
@@ -200,8 +200,8 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     public PavlovHttpClient withBasicAuth(final String username, final String password) {
         Objects.requireNonNull(username);
         Objects.requireNonNull(password);
-        byte[] credentials = String.format("%s:%s", username, password).getBytes();
-        String header = String.format("Basic %s",
+        final byte[] credentials = String.format("%s:%s", username, password).getBytes();
+        final String header = String.format("Basic %s",
                 Base64.getEncoder().encodeToString(credentials));
         return addHeader("Authorization", header);
     }
@@ -239,20 +239,20 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     @Override
     public Optional<HttpResponse> execute(final Consumer<Exception> onError) {
         Objects.requireNonNull(onError, "Error handler is required");
-        List<Exception> validationErrors = validate();
+        final List<Exception> validationErrors = validate();
         if (!validationErrors.isEmpty()) {
             validationErrors.forEach(onError::accept);
             return Optional.empty();
         }
 
-        debugger.ifPresent(c -> c.accept("Final url is: "+this.validatedUrl.toExternalForm()));
+        this.debugger.ifPresent(c -> c.accept("Final url is: "+this.validatedUrl.toExternalForm()));
 
         try {
-            HttpURLConnection connection = (HttpURLConnection) this.validatedUrl.openConnection();
+            final HttpURLConnection connection = (HttpURLConnection) this.validatedUrl.openConnection();
             connection.setConnectTimeout(TIMEOUT);
 
             if (this.ignoreSelfSignedCertEnabled && connection instanceof HttpsURLConnection) {
-                debugger.ifPresent(c -> c.accept("Ignorning self signed certificate"));
+                this.debugger.ifPresent(c -> c.accept("Ignorning self signed certificate"));
                 ((HttpsURLConnection) connection).setSSLSocketFactory(SELF_SIGNED_SOCKET_FACTORY);
             }
 
@@ -277,13 +277,13 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             int responseCode = -1;
             try {
                 responseCode = connection.getResponseCode();
-            } catch (FileNotFoundException e) {
+            } catch (final FileNotFoundException e) {
                 responseCode = 404;
             }
 
             final int debugCode = responseCode; // Need this for the logging lambda
-            debugger.ifPresent(d -> d.accept("Response code is "+debugCode));
-            
+            this.debugger.ifPresent(d -> d.accept("Response code is "+debugCode));
+
             if (responseCode >= 200 && responseCode < 300) {
                 Optional<ConvertibleAsset<InputStream>> inputStream = Optional.empty();
                 if (this.sseConsumer.isPresent()) {
@@ -302,11 +302,13 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                     response = connection.getInputStream() != null
                         ? Optional.of(new ConvertibleAsset<>(connection.getInputStream()))
                         : Optional.empty();
-            } catch (IOException e) {
+            } catch (final FileNotFoundException f) {
+                // Ignore this error
+            } catch (final IOException e) {
                 onError.accept(e);
             }
 
-            Optional<ConvertibleAsset<InputStream>> error =
+            final Optional<ConvertibleAsset<InputStream>> error =
                     connection.getErrorStream() != null
                     ? Optional.of(new ConvertibleAsset<>(connection.getErrorStream()))
                     : Optional.empty();
@@ -318,8 +320,8 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                     response,
                     connection.getHeaderFields()));
 
-        } catch (IOException e) {
-            debugger.ifPresent(d -> d.accept("Got exception "+e));
+        } catch (final IOException e) {
+            this.debugger.ifPresent(d -> d.accept("Got exception "+e));
             onError.accept(e);
             return Optional.empty();
         }
@@ -332,19 +334,19 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
     @Override
     public CompletableFuture<HttpResponse> executeAsync(final ExecutorService pool) {
-        List<Exception> validationErrors = validate();
+        final List<Exception> validationErrors = validate();
 
         if (!validationErrors.isEmpty()) {
-            CompletableFuture<HttpResponse> future = new CompletableFuture<>();
-            IllegalStateException stacked = stackExceptions(validationErrors);
+            final CompletableFuture<HttpResponse> future = new CompletableFuture<>();
+            final IllegalStateException stacked = stackExceptions(validationErrors);
             future.completeExceptionally(stacked);
             return future;
         }
-        
-        CompletableFuture<HttpResponse> ret = new CompletableFuture<>();
+
+        final CompletableFuture<HttpResponse> ret = new CompletableFuture<>();
         pool.submit(() -> {
-            AtomicReference<Exception> error = new AtomicReference<>();
-            Optional<HttpResponse> response = this.execute(error::set);
+            final AtomicReference<Exception> error = new AtomicReference<>();
+            final Optional<HttpResponse> response = this.execute(error::set);
             if (Objects.isNull(error)) {
                 ret.completeExceptionally(error.get());
             } else if (response.isPresent()) {
@@ -357,7 +359,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
 
     private List<Exception> validate() {
-        ArrayList<Exception> errors = new ArrayList<>();
+        final ArrayList<Exception> errors = new ArrayList<>();
 
         // We need, at a minimum, a url and verb
         ifNotPresent(this.httpUrl, () -> errors.add(new IllegalStateException("A URL must be set")));
@@ -370,7 +372,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         this.data.ifPresent(d -> this.handleStream.ifPresent(s ->
             errors.add(new IllegalStateException("Cannot have data and a data handler at the same time"))));
 
-        AtomicReference<URL> url = new AtomicReference<>(this.httpUrl.get());
+        final AtomicReference<URL> url = new AtomicReference<>(this.httpUrl.get());
 
         // Check to see if we can make a new URL from the passed in path, if it exists
         this.httpPath.ifPresent(path ->
@@ -378,20 +380,20 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             this.httpUrl.ifPresent(u -> {
                 try {
                     url.set(combinePath(this.httpUrl.get(), this.httpPath.get()));
-                } catch (MalformedURLException e) {
+                } catch (final MalformedURLException e) {
                     errors.add(e);
                 }
             }));
 
         if (!this.queryParams.isEmpty()) {
-            String queryString = this.queryParams.keySet().stream()
+            final String queryString = this.queryParams.keySet().stream()
                 .map(k -> convertQueryParameter(k, this.queryParams.get(k), e -> errors.add(e)))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .reduce((x,y) -> String.format("%s&%s", x,y)).orElse("");
             try {
                 url.set(new URL(String.format("%s?%s", url.get().toExternalForm(), queryString)));
-            } catch (MalformedURLException e) {
+            } catch (final MalformedURLException e) {
                 errors.add(e);
             }
         }
@@ -399,18 +401,18 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         // We built up the final URL here as well
         this.validatedUrl = url.get();
 
-        if (!errors.isEmpty() && debugger.isPresent()) {
-            errors.forEach(e -> debugger.ifPresent(d -> d.accept(e.toString())));
+        if (!errors.isEmpty() && this.debugger.isPresent()) {
+            errors.forEach(e -> this.debugger.ifPresent(d -> d.accept(e.toString())));
         }
-        
+
         return errors;
     }
 
     private Optional<String> convertQueryParameter(final String key, final String value, final Consumer<Exception> onError) {
         try {
-            String enc = URLEncoder.encode(value, "UTF-8");
+            final String enc = URLEncoder.encode(value, "UTF-8");
             return Optional.of(String.format("%s=%s", key, enc));
-        } catch (UnsupportedEncodingException e) {
+        } catch (final UnsupportedEncodingException e) {
             onError.accept(e);
             return Optional.empty();
         }
@@ -423,7 +425,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
 
     public static URL combinePath(final URL original, final String path) throws MalformedURLException {
-        String base = original.toExternalForm();
+        final String base = original.toExternalForm();
         String finalUrl = "";
         if (base.endsWith("/") && path.startsWith("/")) {
             finalUrl = String.format("%s%s", base, path.substring(1));
@@ -437,12 +439,12 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
     protected void handleHeaders(final HttpURLConnection connection) {
         // We are going to be using a map, based off of what has already been set
-        HashMap<String,List<String>> headers = new HashMap<>(this.additionalHeaders);
+        final HashMap<String,List<String>> headers = new HashMap<>(this.additionalHeaders);
         // Now pass along to any modification routines
         this.setHeaders.ifPresent(sh -> sh.accept(headers));
         // Next we do simple headers, which is a touch more complex
         this.setSimpleHeaders.ifPresent(setter -> {
-            HashMap<String,String> simpleHeaders = new HashMap<>();
+            final HashMap<String,String> simpleHeaders = new HashMap<>();
             setter.accept(simpleHeaders);
             simpleHeaders.forEach((key, value) -> {
                 if (!headers.containsKey(key)) {
@@ -470,7 +472,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     }
 
     private void handleSse(final HttpURLConnection connection) {
-        AtomicBoolean isFalse = new AtomicBoolean();
+        final AtomicBoolean isFalse = new AtomicBoolean();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
             while (!this.interrupt.orElse(isFalse).get()) {
                 Optional<String> id = Optional.empty();
@@ -478,11 +480,11 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                 Optional<ConvertibleAsset<String>> data = Optional.empty();
                 while (!this.interrupt.orElse(isFalse).get()) {
                     // Empty line is the end of an event
-                    String line = reader.readLine();
+                    final String line = reader.readLine();
                     if (line.trim().isEmpty()) {
                         // If we have at least data, emit an sse event
                         if (data.isPresent()) {
-                            SseMessageEvent currentEvent = new SseMessageEvent(id, event, data);
+                            final SseMessageEvent currentEvent = new SseMessageEvent(id, event, data);
                             this.sseConsumer.get().accept(currentEvent);
                         }
                         break; // Next message
@@ -490,7 +492,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
                     // This ignores comment lines
                     if (!line.trim().startsWith(":")) {
-                        Matcher lineMatcher = SSE_ENTRY.matcher(line.trim());
+                        final Matcher lineMatcher = SSE_ENTRY.matcher(line.trim());
                         if (lineMatcher.matches()) {
                             switch (lineMatcher.group("field")) {
                                 case "id":
@@ -509,12 +511,12 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             // TODO: Is there any point in logging this somehow?
             e.printStackTrace();
         }
     }
-    
+
     private static IllegalStateException stackExceptions(final List<Exception> exceptions) {
         IllegalStateException last = null;
         for (final Exception e: exceptions) {

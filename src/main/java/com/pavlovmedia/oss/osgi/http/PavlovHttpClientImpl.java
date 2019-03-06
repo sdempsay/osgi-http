@@ -86,6 +86,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         this.streamConsumer.ifPresent(ret::asStreaming);
         this.handleStream.ifPresent(ret::withData);
         this.data.ifPresent(ret::withData);
+        ret.ignoreSelfSignedCertEnabled = this.ignoreSelfSignedCertEnabled;
         return ret;
     }
 

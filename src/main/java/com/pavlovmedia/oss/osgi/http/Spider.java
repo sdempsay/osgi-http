@@ -130,7 +130,7 @@ public class Spider {
             
             return links.stream()
                    .filter(s -> !(s.startsWith(".") || s.startsWith("..")))
-                   .map(s -> UrlHelpers.fromRef(s, response.srcUrl, e -> { })) // 
+                   .map(s -> UrlHelpers.fullUrlFromReference(s, response.srcUrl, e -> { })) // 
                    .filter(Optional::isPresent)
                    .map(Optional::get)
                    .collect(Collectors.toSet());

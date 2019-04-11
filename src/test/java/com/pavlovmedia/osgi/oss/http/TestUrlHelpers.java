@@ -35,36 +35,36 @@ public class TestUrlHelpers {
     @Test
     public void testFromRefUseString() {
         assertEquals("http://a/b/", 
-                UrlHelpers.fromRef("http://a/b/", "http://a"));
+                UrlHelpers.fullUrlFromReference("http://a/b/", "http://a"));
     }
     
     @Test
     public void testFromRefAppendString() {
         assertEquals("http://a/b/", 
-                UrlHelpers.fromRef("/b/", "http://a"));
+                UrlHelpers.fullUrlFromReference("/b/", "http://a"));
     }
     
     @Test
     public void testFromRefOptUseString() throws Exception {
         assertEquals(new URL("http://a/b/"), 
-                UrlHelpers.fromRef("http://a/b/", "http://a", System.out::println).get());
+                UrlHelpers.fullUrlFromReference("http://a/b/", "http://a", System.out::println).get());
     }
     
     @Test
     public void testFromRefOptAppendString() throws Exception {
         assertEquals(new URL("http://a/b/"), 
-                UrlHelpers.fromRef("/b/", "http://a", System.out::println).get());
+                UrlHelpers.fullUrlFromReference("/b/", "http://a", System.out::println).get());
     }
     
     @Test
     public void testFromRefOptUseURL() throws Exception {
         assertEquals(new URL("http://a/b/"), 
-                UrlHelpers.fromRef("http://a/b/", new URL("http://a"), System.out::println).get());
+                UrlHelpers.fullUrlFromReference("http://a/b/", new URL("http://a"), System.out::println).get());
     }
     
     @Test
     public void testFromRefOptAppendURL() throws Exception {
         assertEquals(new URL("http://a/b/"), 
-                UrlHelpers.fromRef("/b/", new URL("http://a"), System.out::println).get());
+                UrlHelpers.fullUrlFromReference("/b/", new URL("http://a"), System.out::println).get());
     }
 }

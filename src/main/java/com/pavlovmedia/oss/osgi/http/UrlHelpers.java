@@ -105,12 +105,12 @@ public final class UrlHelpers {
      * @param srcUrl
      * @param onError a consumer that gets the {@link MalformedURLException} if it is correct
      */
-    public static Optional<URL> fromRef(final String ref, final String srcUrl, final Consumer<Exception> onError) {
+    public static Optional<URL> fullUrlFromReference(final String ref, final String srcUrl, final Consumer<Exception> onError) {
         Objects.requireNonNull(ref);
         Objects.requireNonNull(srcUrl);
         Objects.requireNonNull(onError);
         
-        return urlFromString(fromRef(ref, srcUrl), onError);
+        return urlFromString(fullUrlFromReference(ref, srcUrl), onError);
     }
     
     /**
@@ -123,12 +123,12 @@ public final class UrlHelpers {
      * @param srcUrl
      * @param onError a consumer that gets the {@link MalformedURLException} if it is correct
      */
-    public static Optional<URL> fromRef(final String ref, final URL srcUrl, final Consumer<Exception> onError) {
+    public static Optional<URL> fullUrlFromReference(final String ref, final URL srcUrl, final Consumer<Exception> onError) {
         Objects.requireNonNull(ref);
         Objects.requireNonNull(srcUrl);
         Objects.requireNonNull(onError);
         
-        return urlFromString(fromRef(ref, srcUrl.toExternalForm()), onError);
+        return urlFromString(fullUrlFromReference(ref, srcUrl.toExternalForm()), onError);
     }
     
     /**
@@ -140,7 +140,7 @@ public final class UrlHelpers {
      * @param ref
      * @param srcUrl
      */
-    public static String fromRef(final String ref, final String srcUrl) {
+    public static String fullUrlFromReference(final String ref, final String srcUrl) {
         Objects.requireNonNull(ref);
         Objects.requireNonNull(srcUrl);
         

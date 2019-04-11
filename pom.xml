@@ -83,7 +83,7 @@
     <maven-surefire-plugin.version>2.18.1</maven-surefire-plugin.version>
     
     <pluginversions.javadoc>2.9.1</pluginversions.javadoc>
-    <checkstyle.version>8.11</checkstyle.version>
+    <checkstyle.version>8.18</checkstyle.version>
 
     <!-- OSGi support versions -->
     <osgi.version>5.0.0</osgi.version>

@@ -105,7 +105,6 @@ public interface PavlovHttpClient {
      * Adds an authorization header with basic auth
      * @param username
      * @param password
-     * @return
      */
     PavlovHttpClient withBasicAuth(String username, String password);
 

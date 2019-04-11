@@ -146,7 +146,6 @@ public class HttpResponse {
      *
      * @deprecated The Exception Consumer was not needed and causing issues.  Use the non-Exception Consumer method
      * @param onError
-     * @return
      */
     @Deprecated
     public boolean isValidResponse(final Consumer<Exception> onError) {

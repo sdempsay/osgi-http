@@ -375,16 +375,8 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
         final AtomicReference<URL> url = new AtomicReference<>(this.httpUrl.get());
 
-        // Check to see if we can make a new URL from the passed in path, if it exists
-        this.httpPath.ifPresent(path ->
-            // There was a check for this, but it can still be empty here
-            this.httpUrl.ifPresent(u -> {
-                try {
-                    url.set(combinePath(this.httpUrl.get(), this.httpPath.get()));
-                } catch (final MalformedURLException e) {
-                    errors.add(e);
-                }
-            }));
+        this.httpPath.flatMap(path -> UrlHelpers.urlFromString(UrlHelpers.combinePath(url.get(), path), errors::add))
+            .ifPresent(url::set);
 
         if (!this.queryParams.isEmpty()) {
             final String queryString = this.queryParams.keySet().stream()
@@ -425,6 +417,13 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         }
     }
 
+    /**
+     * @deprecated use the version from {@link UrlHelpers} instead. 
+     * @param original
+     * @param path
+     * @throws MalformedURLException
+     */
+    @Deprecated
     public static URL combinePath(final URL original, final String path) throws MalformedURLException {
         final String base = original.toExternalForm();
         String finalUrl = "";

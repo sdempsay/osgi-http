@@ -129,8 +129,8 @@ public class Spider {
             }
             
             return links.stream()
-                   .filter(s -> !(s.startsWith(".") || s.startsWith("..")))
-                   .map(s -> UrlHelpers.fullUrlFromReference(s, response.srcUrl, e -> { })) // 
+                   .filter(s -> !s.startsWith("."))
+                   .map(s -> UrlHelpers.fullUrlFromReference(s, response.srcUrl, e -> { })) // XXX: Don't use onError here?
                    .filter(Optional::isPresent)
                    .map(Optional::get)
                    .collect(Collectors.toSet());

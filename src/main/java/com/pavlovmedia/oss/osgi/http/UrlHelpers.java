@@ -144,7 +144,7 @@ public final class UrlHelpers {
         Objects.requireNonNull(ref);
         Objects.requireNonNull(srcUrl);
         
-        return ref.matches("^http.+")
+        return ref.matches("^http[s]*:\\/\\/.+")
                 ? ref
                 : combinePath(srcUrl, ref);
     }

@@ -10,9 +10,9 @@ import com.pavlovmedia.oss.osgi.utilities.convertible.ConvertibleAsset;
  *
  */
 public class SseMessageEvent {
-    final Optional<String> id;
-    final Optional<ConvertibleAsset<String>> event;
-    final Optional<ConvertibleAsset<String>> data;
+    public final Optional<String> id;
+    public final Optional<ConvertibleAsset<String>> event;
+    public final Optional<ConvertibleAsset<String>> data;
     
     public SseMessageEvent(final Optional<String> id,
             final Optional<ConvertibleAsset<String>> event,

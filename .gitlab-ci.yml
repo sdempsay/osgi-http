@@ -1,0 +1,25 @@
+stages:
+  #- checkout
+  - compile
+  #- document
+  #- release
+  #- test
+  #- build
+  #- deployment
+  #- obr2
+  
+cache:
+  paths:
+    - .m2/repository
+  key: "${CI_COMMIT_REF_SLUG}"
+
+compile:
+  stage: compile
+  tags: 
+    - java8-dev
+  artifacts:
+    untracked: true
+  variables:
+    GIT_STRATEGY: clone
+  script:
+    mvn -U clean package

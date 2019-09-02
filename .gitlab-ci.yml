@@ -3,7 +3,7 @@ stages:
   
 cache:
   paths:
-    - /m2/repository
+    - /m2/
 
 compile:
   stage: compile
@@ -14,4 +14,6 @@ compile:
   variables:
     GIT_STRATEGY: clone
   script:
-    mvn -U clean package
+    ls /m2
+    mvn clean package
+    ls /m2

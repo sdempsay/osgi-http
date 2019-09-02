@@ -3,7 +3,7 @@ stages:
   
 cache:
   paths:
-    - /m2/
+    - ./.m2/
 
 compile:
   stage: compile

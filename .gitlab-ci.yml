@@ -1,17 +1,9 @@
 stages:
-  #- checkout
   - compile
-  #- document
-  #- release
-  #- test
-  #- build
-  #- deployment
-  #- obr2
   
 cache:
   paths:
-    - .m2/repository
-  key: "${CI_COMMIT_REF_SLUG}"
+    - /m2/repository
 
 compile:
   stage: compile

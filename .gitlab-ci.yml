@@ -1,17 +1,3 @@
-stages:
-  - compile
-  
-cache:
-  paths:
-    - ./.m2/
-
-compile:
-  stage: compile
-  tags: 
-    - java8-dev
-  artifacts:
-    untracked: true
-  variables:
-    GIT_STRATEGY: clone
-  script:
-    mvn clean package
+include:
+  - project: 'research/buildscripts'
+    file: '/java.yaml'

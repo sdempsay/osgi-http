@@ -155,7 +155,7 @@ public class HttpResponse {
     /**
      * This method will check to see if there is a valid response code, which
      * is between 200 and 299, if not it returns false
-     * @return true : 200 >= x < 300
+     * @return true : 200 &gt;= x &lt; 300
      */
     public boolean isValidResponse() {
         return !(this.responseCode < 200 || this.responseCode >= 300);

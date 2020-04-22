@@ -244,6 +244,7 @@
           <version>${pluginversions.javadoc}</version>
           <configuration>
             <additionalparam>-Xdoclint:none</additionalparam>
+            <source>8</source>
           </configuration>
           <executions>
             <execution>

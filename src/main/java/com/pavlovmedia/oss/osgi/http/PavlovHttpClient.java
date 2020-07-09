@@ -1,5 +1,6 @@
 package com.pavlovmedia.oss.osgi.http;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -119,6 +120,14 @@ public interface PavlovHttpClient {
      * @param data
      */
     PavlovHttpClient withData(String data);
+    
+    /**
+     * Adds a file to be sent with a post request of content type "multipart/form-data"
+     * @param fieldName the name of the field for the file in the form
+     * @param file 
+     * @return
+     */
+    PavlovHttpClient addFileFormData(String fieldName, File file);
 
     /**
      * Treats this connection as SSE and will dispatch events to the provided

@@ -285,25 +285,30 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                 && additionalHeaders.get(CONTENT_TYPE_HEADER).contains("multipart/form-data;boundary=" + BOUNDARY)) {
                     
                     connection.setDoOutput(true);
-                    AtomicBoolean hasErrors = new AtomicBoolean(false);
-                    fileFormData.keySet().forEach(key -> {
-                        try (OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream())) {
-                            writer.write("--" + BOUNDARY + LINE_FEED);
-                            writer.write(String.format("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"%s%s", 
-                                key, fileFormData.get(key).getName(), LINE_FEED, LINE_FEED));
-                            writer.write(new String(Files.readAllBytes(Paths.get(fileFormData.get(key).getAbsolutePath())), StandardCharsets.UTF_8));
-                            writer.write(LINE_FEED);
+                    try (OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream())) {
+                        AtomicBoolean hasErrors = new AtomicBoolean(false);
+                        fileFormData.keySet().forEach(key -> {
+                            try {
+                                writer.write("--" + BOUNDARY + LINE_FEED);
+                                writer.write(String.format("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"%s%s", 
+                                        key, fileFormData.get(key).getName(), LINE_FEED, LINE_FEED));
+                                writer.write(new String(Files.readAllBytes(Paths.get(fileFormData.get(key).getAbsolutePath())), StandardCharsets.UTF_8));
+                                writer.write(LINE_FEED);
+                            } catch (IOException e) {
+                                onError.accept(new IOException("Error when writing " + fileFormData.get(key).getName()
+                                        + " to the request. Error message: " + e.getMessage()));
+                                hasErrors.set(true);
+                            }
+                            
+                        });
+                        if (hasErrors.get()) {
+                            return Optional.empty();
+                        } else {
                             writer.write("--" + BOUNDARY + "--" + LINE_FEED);
                             writer.flush();
-                        } catch (final IOException e) {
-                            onError.accept(new IOException("Error when writing " + fileFormData.get(key).getName()
-                                    + " to the request. Error message: " + e.getMessage()));
-                            hasErrors.set(true);
                         }
-                    });
-                    if (hasErrors.get()) {
-                        return Optional.empty();
                     }
+                    
                     
             } else if (this.data.isPresent()) {
                 connection.setDoOutput(true);

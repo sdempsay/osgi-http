@@ -283,7 +283,6 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
             if (additionalHeaders.containsKey(CONTENT_TYPE_HEADER) 
                 && additionalHeaders.get(CONTENT_TYPE_HEADER).contains("multipart/form-data;boundary=" + BOUNDARY)) {
-                    
                     connection.setDoOutput(true);
                     try (OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream())) {
                         AtomicBoolean hasErrors = new AtomicBoolean(false);

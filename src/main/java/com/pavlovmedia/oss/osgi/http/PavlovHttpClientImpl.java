@@ -55,8 +55,8 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     private static final int TIMEOUT = 5000; // XXX: Should this be settable?
     private static final Pattern SSE_ENTRY = Pattern.compile("(?<field>\\w+):(?<data>.+)");
     private static final String LINE_FEED = "\r\n";
-    private static final String BOUNDARY = UUID.randomUUID().toString();
-
+    
+    private String boundary = UUID.randomUUID().toString();
     private Optional<URL> httpUrl = Optional.empty();
     private Optional<String> httpPath = Optional.empty();
     private Optional<HttpVerbs> verb = Optional.empty();
@@ -76,10 +76,11 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     private boolean ignoreSelfSignedCertEnabled;
 
     private URL validatedUrl;
-
+    
     @Override
     public PavlovHttpClient clone() {
         final PavlovHttpClientImpl ret = new PavlovHttpClientImpl();
+        ret.boundary = new String(this.boundary);
         this.httpUrl.ifPresent(ret::againstUrl);
         this.httpPath.ifPresent(ret::withUrlPath);
         this.verb.ifPresent(ret::withVerb);
@@ -154,7 +155,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             this.additionalHeaders.put(CONTENT_TYPE_HEADER, new ArrayList<String>());
         }
         if ("multipart/form-data".equals(contentType)) {
-            this.additionalHeaders.get(CONTENT_TYPE_HEADER).add(contentType + ";boundary=" + BOUNDARY);
+            this.additionalHeaders.get(CONTENT_TYPE_HEADER).add(contentType + ";boundary=" + boundary);
         } else {
             this.additionalHeaders.get(CONTENT_TYPE_HEADER).add(contentType);
         }
@@ -282,13 +283,13 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             this.beforeConnect.ifPresent(c -> c.accept(connection));
 
             if (additionalHeaders.containsKey(CONTENT_TYPE_HEADER) 
-                && additionalHeaders.get(CONTENT_TYPE_HEADER).contains("multipart/form-data;boundary=" + BOUNDARY)) {
+                && additionalHeaders.get(CONTENT_TYPE_HEADER).contains("multipart/form-data;boundary=" + boundary)) {
                     connection.setDoOutput(true);
                     try (OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream())) {
                         AtomicBoolean hasErrors = new AtomicBoolean(false);
                         fileFormData.keySet().forEach(key -> {
                             try {
-                                writer.write("--" + BOUNDARY + LINE_FEED);
+                                writer.write("--" + boundary + LINE_FEED);
                                 writer.write(String.format("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"%s%s", 
                                         key, fileFormData.get(key).getName(), LINE_FEED, LINE_FEED));
                                 writer.write(new String(Files.readAllBytes(Paths.get(fileFormData.get(key).getAbsolutePath())), StandardCharsets.UTF_8));
@@ -298,17 +299,14 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
                                         + " to the request. Error message: " + e.getMessage()));
                                 hasErrors.set(true);
                             }
-                            
                         });
                         if (hasErrors.get()) {
                             return Optional.empty();
                         } else {
-                            writer.write("--" + BOUNDARY + "--" + LINE_FEED);
+                            writer.write("--" + boundary + "--" + LINE_FEED);
                             writer.flush();
                         }
                     }
-                    
-                    
             } else if (this.data.isPresent()) {
                 connection.setDoOutput(true);
                 try (OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream())) {

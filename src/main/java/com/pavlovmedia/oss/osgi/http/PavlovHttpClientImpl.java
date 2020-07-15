@@ -113,6 +113,8 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         }
     }
 
+    private static AnyHostVerifier HOSTNAME_VERIFIER = new AnyHostVerifier();
+    
     @Override
     public PavlovHttpClientImpl againstUrl(final URL url) {
         this.httpUrl = Optional.of(url);
@@ -275,6 +277,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             if (this.ignoreSelfSignedCertEnabled && connection instanceof HttpsURLConnection) {
                 this.debugger.ifPresent(c -> c.accept("Ignorning self signed certificate"));
                 ((HttpsURLConnection) connection).setSSLSocketFactory(SELF_SIGNED_SOCKET_FACTORY);
+                ((HttpsURLConnection) connection).setHostnameVerifier(HOSTNAME_VERIFIER);
             }
 
             this.handleHeaders(connection);

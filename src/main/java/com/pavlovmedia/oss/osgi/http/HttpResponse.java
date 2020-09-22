@@ -155,12 +155,62 @@ public class HttpResponse {
     /**
      * This method will check to see if there is a valid response code, which
      * is between 200 and 299, if not it returns false
-     * @return true : 200 >= x < 300
+     * @return true : 200 &gt;= x &lt; 300
      */
     public boolean isValidResponse() {
         return !(this.responseCode < 200 || this.responseCode >= 300);
     }
 
+    /**
+     * Will process the result of a response branching between valid responses and invalid responses
+     * @since 1.0.11
+     * 
+     * @param onValidResponse calculates a response based on a valid status
+     * @param onInvalidResponse calculates a response based on an invalid status
+     */
+    public <T> Optional<T> process(final Function<HttpResponse, Optional<T>> onValidResponse, final Function<HttpResponse, Optional<T>> onInvalidResponse) {
+        return isValidResponse()
+            ? onValidResponse.apply(this)
+            : onInvalidResponse.apply(this);
+    }
+
+    /**
+     * A static version of {@link #process(Function, Function)} that is useful in mapping functions
+     * @since 1.0.11
+     * 
+     * @param onValidResponse
+     * @param onInvalidResponse
+     */
+    public static final <T> Function<HttpResponse,Optional<T>> processResponse(final Function<HttpResponse, Optional<T>> onValidResponse, final Function<HttpResponse, Optional<T>> onInvalidResponse) {
+        return httpResponse -> httpResponse.process(onValidResponse, onInvalidResponse);
+    }
+    
+    /**
+     * Will process the result of a response returning the value of onValidResponse for valid, and calling onInvalidResponse and returning {@link Optional#empty()}
+     * if the response is invalid
+     * @since 1.0.11
+     * 
+     * @param onValidResponse
+     * @param onInvalidResponse
+     */
+    public <T> Optional<T> process(final Function<HttpResponse, Optional<T>> onValidResponse, final Consumer<HttpResponse> onInvalidResponse) {
+        return process(onValidResponse, r -> {
+            onInvalidResponse.accept(this);
+            return Optional.empty();
+        });
+    }
+
+    /**
+     * A static version of {@link #process(Function, Consumer)} that is useful in mapping functions
+     * @since 1.0.11
+     * 
+     * @param onValidResponse
+     * @param onInvalidResponse
+     */
+    public static final <T> Function<HttpResponse,Optional<T>> processResponse(final Function<HttpResponse, Optional<T>> onValidResponse, final Consumer<HttpResponse> onInvalidResponse) {
+        return httpResponse -> httpResponse.process(onValidResponse, onInvalidResponse);
+    }
+    
     /**
      * Static method that will give a converter to decode an UTF-8 input stream into a java string
      * @param onError called if there is an error decoding the string

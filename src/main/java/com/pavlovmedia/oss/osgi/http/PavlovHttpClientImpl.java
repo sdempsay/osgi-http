@@ -1,6 +1,7 @@
 package com.pavlovmedia.oss.osgi.http;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,6 +14,9 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
@@ -49,7 +54,9 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     public static final String CONTENT_TYPE_HEADER = "Content-type";
     private static final int TIMEOUT = 5000; // XXX: Should this be settable?
     private static final Pattern SSE_ENTRY = Pattern.compile("(?<field>\\w+):(?<data>.+)");
-
+    private static final String LINE_FEED = "\r\n";
+    
+    private String boundary = UUID.randomUUID().toString();
     private Optional<URL> httpUrl = Optional.empty();
     private Optional<String> httpPath = Optional.empty();
     private Optional<HttpVerbs> verb = Optional.empty();
@@ -65,13 +72,15 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
     private Optional<Consumer<OutputStream>> handleStream = Optional.empty();
     private Optional<Consumer<String>> debugger = Optional.empty();
     private Optional<String> data = Optional.empty();
+    private HashMap<String, File> fileFormData = new HashMap<>();
     private boolean ignoreSelfSignedCertEnabled;
 
     private URL validatedUrl;
-
+    
     @Override
     public PavlovHttpClient clone() {
         final PavlovHttpClientImpl ret = new PavlovHttpClientImpl();
+        ret.boundary = new String(this.boundary);
         this.httpUrl.ifPresent(ret::againstUrl);
         this.httpPath.ifPresent(ret::withUrlPath);
         this.verb.ifPresent(ret::withVerb);
@@ -86,6 +95,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         this.streamConsumer.ifPresent(ret::asStreaming);
         this.handleStream.ifPresent(ret::withData);
         this.data.ifPresent(ret::withData);
+        ret.fileFormData = new HashMap<>(this.fileFormData);
         ret.ignoreSelfSignedCertEnabled = this.ignoreSelfSignedCertEnabled;
         return ret;
     }
@@ -103,6 +113,8 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         }
     }
 
+    private static AnyHostVerifier HOSTNAME_VERIFIER = new AnyHostVerifier();
+    
     @Override
     public PavlovHttpClientImpl againstUrl(final URL url) {
         this.httpUrl = Optional.of(url);
@@ -144,7 +156,11 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         if (!this.additionalHeaders.containsKey(CONTENT_TYPE_HEADER)) {
             this.additionalHeaders.put(CONTENT_TYPE_HEADER, new ArrayList<String>());
         }
-        this.additionalHeaders.get(CONTENT_TYPE_HEADER).add(contentType);
+        if ("multipart/form-data".equals(contentType)) {
+            this.additionalHeaders.get(CONTENT_TYPE_HEADER).add(contentType + ";boundary=" + boundary);
+        } else {
+            this.additionalHeaders.get(CONTENT_TYPE_HEADER).add(contentType);
+        }
         return this;
     }
 
@@ -218,6 +234,12 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
         this.data = Optional.of(data);
         return this;
     }
+    
+    @Override
+    public PavlovHttpClientImpl addFileFormData(final String fieldName, final File file) {
+        this.fileFormData.put(fieldName, file);
+        return this;
+    }
 
     @Override
     public PavlovHttpClientImpl asSse(final Consumer<SseMessageEvent> sseConsumer) {
@@ -255,6 +277,7 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
             if (this.ignoreSelfSignedCertEnabled && connection instanceof HttpsURLConnection) {
                 this.debugger.ifPresent(c -> c.accept("Ignorning self signed certificate"));
                 ((HttpsURLConnection) connection).setSSLSocketFactory(SELF_SIGNED_SOCKET_FACTORY);
+                ((HttpsURLConnection) connection).setHostnameVerifier(HOSTNAME_VERIFIER);
             }
 
             this.handleHeaders(connection);
@@ -262,7 +285,32 @@ public class PavlovHttpClientImpl implements PavlovHttpClient {
 
             this.beforeConnect.ifPresent(c -> c.accept(connection));
 
-            if (this.data.isPresent()) {
+            if (additionalHeaders.containsKey(CONTENT_TYPE_HEADER) 
+                && additionalHeaders.get(CONTENT_TYPE_HEADER).contains("multipart/form-data;boundary=" + boundary)) {
+                    connection.setDoOutput(true);
+                    try (OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream())) {
+                        AtomicBoolean hasErrors = new AtomicBoolean(false);
+                        fileFormData.keySet().forEach(key -> {
+                            try {
+                                writer.write("--" + boundary + LINE_FEED);
+                                writer.write(String.format("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"%s%s", 
+                                        key, fileFormData.get(key).getName(), LINE_FEED, LINE_FEED));
+                                writer.write(new String(Files.readAllBytes(Paths.get(fileFormData.get(key).getAbsolutePath())), StandardCharsets.UTF_8));
+                                writer.write(LINE_FEED);
+                            } catch (IOException e) {
+                                onError.accept(new IOException("Error when writing " + fileFormData.get(key).getName()
+                                        + " to the request. Error message: " + e.getMessage()));
+                                hasErrors.set(true);
+                            }
+                        });
+                        if (hasErrors.get()) {
+                            return Optional.empty();
+                        } else {
+                            writer.write("--" + boundary + "--" + LINE_FEED);
+                            writer.flush();
+                        }
+                    }
+            } else if (this.data.isPresent()) {
                 connection.setDoOutput(true);
                 try (OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream())) {
                     writer.write(this.data.get());

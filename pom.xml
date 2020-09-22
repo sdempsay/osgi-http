@@ -66,8 +66,9 @@
   </distributionManagement>
 
   <properties>
-    <checkstyle.config.location>https://raw.githubusercontent.com/pavlovmedia/checkstyle/master/pavlov.xml</checkstyle.config.location>
-    <checkstyle-plugin.version>3.0.0</checkstyle-plugin.version>
+    <checkstyle.config.location>https://raw.githubusercontent.com/pavlovmedia/checkstyle/8_plus/pavlov.xml</checkstyle.config.location>
+    <checkstyle-plugin.version>3.1.1</checkstyle-plugin.version>
+    <checkstyle.version>8.29</checkstyle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <bundle.category>http</bundle.category>
     
@@ -243,6 +244,7 @@
           <version>${pluginversions.javadoc}</version>
           <configuration>
             <additionalparam>-Xdoclint:none</additionalparam>
+            <source>8</source>
           </configuration>
           <executions>
             <execution>
@@ -321,4 +323,17 @@
       </plugin>
     </plugins>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <source>8</source>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+
 </project>
